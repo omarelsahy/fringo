@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BoardSquareWithAction } from '@/types/app'
 
@@ -41,15 +42,23 @@ export function BingoGrid({ rows, cols, squares, onMark, disabled }: BingoGridPr
               disabled={!canMark}
               onClick={() => canMark && onMark(sq.id)}
               className={cn(
-                'aspect-square rounded-md border p-1 text-left text-[10px] leading-tight transition-colors sm:text-xs',
+                'relative aspect-square rounded-md border p-1 text-left text-[10px] leading-tight transition-colors sm:text-xs',
                 isFree && 'border-primary/40 bg-primary/10 font-semibold',
                 isMarked && 'border-emerald-500/50 bg-emerald-500/20',
-                isLocked && 'border-border bg-secondary/40 opacity-60',
-                sq.state === 'unmarked' && 'border-border bg-card hover:border-primary/50',
+                (isLocked || sq.state === 'unmarked') && 'border-border bg-card',
+                sq.state === 'unmarked' && 'hover:border-primary/50',
                 canMark && 'cursor-pointer active:scale-95',
               )}
             >
               {isFree ? 'FREE' : sq.selected_actions?.action_text ?? '...'}
+              {isLocked && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                >
+                  <X className="h-8 w-8 text-red-500" strokeWidth={3} />
+                </span>
+              )}
             </button>
           )
         }),
