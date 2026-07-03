@@ -72,7 +72,6 @@ BEGIN
     SELECT 1 FROM public.guesses
     WHERE game_id = v_board.game_id
       AND matched_selected_action_id = v_action.id
-      AND guessed_by_player_id = v_reporter_id
       AND result <> 'pending'
   ) THEN
     RAISE EXCEPTION 'Guess already reported for this action';

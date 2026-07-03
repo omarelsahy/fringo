@@ -183,6 +183,7 @@ export const api = {
       .filter((id): id is string => !!id)
 
     let actionMap: Record<string, Pick<SelectedAction, 'action_text' | 'global_state'>> = {}
+    let globallyMarkedActionIds = new Set<string>()
     if (actionIds.length > 0) {
       const { data: actions, error: actError } = await supabase
         .from('selected_actions')
@@ -190,11 +191,26 @@ export const api = {
         .in('id', actionIds)
       if (actError) throw actError
       actionMap = Object.fromEntries((actions ?? []).map((a) => [a.id, a]))
+
+      const { data: markedSquares, error: markedError } = await supabase
+        .from('board_squares')
+        .select('selected_action_id')
+        .in('selected_action_id', actionIds)
+        .in('state', ['marked', 'winning'])
+      if (markedError) throw markedError
+      globallyMarkedActionIds = new Set(
+        (markedSquares ?? [])
+          .map((sq) => sq.selected_action_id)
+          .filter((id): id is string => !!id),
+      )
     }
 
     const squaresWithActions = (squares ?? []).map((sq) => ({
       ...sq,
       selected_actions: sq.selected_action_id ? actionMap[sq.selected_action_id] ?? null : null,
+      action_marked_globally: sq.selected_action_id
+        ? globallyMarkedActionIds.has(sq.selected_action_id)
+        : false,
     }))
 
     return {

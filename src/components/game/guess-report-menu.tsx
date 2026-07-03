@@ -22,8 +22,8 @@ export function GuessReportMenu({
   onClose,
 }: GuessReportMenuProps) {
   const actionText = square.selected_actions?.action_text ?? 'this action'
-  const isMarked = square.state === 'marked' || square.state === 'winning'
-  const isLocked = square.state === 'locked'
+  const isActionMarked = square.action_marked_globally
+  const isLocked = square.state === 'locked' || square.selected_actions?.global_state === 'locked'
 
   return (
     <div
@@ -56,7 +56,7 @@ export function GuessReportMenu({
               <Button
                 className="h-auto w-full justify-start whitespace-normal py-3 text-left"
                 variant="secondary"
-                disabled={busy || isMarked}
+                disabled={busy || isActionMarked}
                 onClick={() => onReport('correct_pre_action')}
               >
                 Target guessed correctly before committing the action
@@ -64,7 +64,7 @@ export function GuessReportMenu({
               <Button
                 className="h-auto w-full justify-start whitespace-normal py-3 text-left"
                 variant="secondary"
-                disabled={busy || !isMarked}
+                disabled={busy || !isActionMarked}
                 onClick={() => onReport('correct_post_action')}
               >
                 Target guessed correctly after committing the action
