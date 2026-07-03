@@ -1,16 +1,20 @@
+import { useRef } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BoardSquareWithAction } from '@/types/app'
+
+const LONG_PRESS_MS = 500
 
 interface BingoGridProps {
   rows: number
   cols: number
   squares: BoardSquareWithAction[]
   onMark?: (squareId: string) => void
+  onLongPress?: (square: BoardSquareWithAction) => void
   disabled?: boolean
 }
 
-export function BingoGrid({ rows, cols, squares, onMark, disabled }: BingoGridProps) {
+export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled }: BingoGridProps) {
   const grid: (BoardSquareWithAction | null)[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => null),
   )
@@ -30,39 +34,98 @@ export function BingoGrid({ rows, cols, squares, onMark, disabled }: BingoGridPr
             return <div key={`${r}-${c}`} className="aspect-square rounded-md bg-secondary/30" />
           }
 
-          const isFree = sq.state === 'free'
-          const isMarked = sq.state === 'marked' || sq.state === 'winning'
-          const isLocked = sq.state === 'locked'
-          const canMark = !disabled && sq.state === 'unmarked' && onMark
-
           return (
-            <button
+            <SquareButton
               key={sq.id}
-              type="button"
-              disabled={!canMark}
-              onClick={() => canMark && onMark(sq.id)}
-              className={cn(
-                'relative aspect-square rounded-md border p-1 text-left text-[10px] leading-tight transition-colors sm:text-xs',
-                isFree && 'border-primary/40 bg-primary/10 font-semibold',
-                isMarked && 'border-emerald-500/50 bg-emerald-500/20',
-                (isLocked || sq.state === 'unmarked') && 'border-border bg-card',
-                sq.state === 'unmarked' && 'hover:border-primary/50',
-                canMark && 'cursor-pointer active:scale-95',
-              )}
-            >
-              {isFree ? 'FREE' : sq.selected_actions?.action_text ?? '...'}
-              {isLocked && (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 flex items-center justify-center"
-                >
-                  <X className="h-8 w-8 text-red-500" strokeWidth={3} />
-                </span>
-              )}
-            </button>
+              square={sq}
+              disabled={disabled}
+              onMark={onMark}
+              onLongPress={onLongPress}
+            />
           )
         }),
       )}
     </div>
+  )
+}
+
+function SquareButton({
+  square,
+  disabled,
+  onMark,
+  onLongPress,
+}: {
+  square: BoardSquareWithAction
+  disabled?: boolean
+  onMark?: (squareId: string) => void
+  onLongPress?: (square: BoardSquareWithAction) => void
+}) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressedRef = useRef(false)
+
+  const isFree = square.state === 'free'
+  const isMarked = square.state === 'marked' || square.state === 'winning'
+  const isLocked = square.state === 'locked'
+  const canMark = !disabled && square.state === 'unmarked' && onMark
+  const canLongPress = !disabled && !isFree && !isLocked && onLongPress
+
+  function clearTimer() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }
+
+  function startLongPress() {
+    if (!canLongPress) return
+    longPressedRef.current = false
+    clearTimer()
+    timerRef.current = setTimeout(() => {
+      longPressedRef.current = true
+      onLongPress?.(square)
+    }, LONG_PRESS_MS)
+  }
+
+  function handleClick() {
+    if (longPressedRef.current) {
+      longPressedRef.current = false
+      return
+    }
+    if (canMark) onMark(square.id)
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={!canMark && !canLongPress}
+      onClick={handleClick}
+      onMouseDown={startLongPress}
+      onMouseUp={clearTimer}
+      onMouseLeave={clearTimer}
+      onTouchStart={startLongPress}
+      onTouchEnd={clearTimer}
+      onTouchCancel={clearTimer}
+      onContextMenu={(e) => {
+        if (canLongPress) e.preventDefault()
+      }}
+      className={cn(
+        'relative aspect-square rounded-md border p-1 text-left text-[10px] leading-tight transition-colors sm:text-xs',
+        isFree && 'border-primary/40 bg-primary/10 font-semibold',
+        isMarked && 'border-emerald-500/50 bg-emerald-500/20',
+        (isLocked || square.state === 'unmarked') && 'border-border bg-card',
+        square.state === 'unmarked' && 'hover:border-primary/50',
+        (canMark || canLongPress) && 'cursor-pointer active:scale-95',
+      )}
+    >
+      {isFree ? 'FREE' : square.selected_actions?.action_text ?? '...'}
+      {isLocked && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <X className="h-8 w-8 text-red-500" strokeWidth={3} />
+        </span>
+      )}
+    </button>
   )
 }

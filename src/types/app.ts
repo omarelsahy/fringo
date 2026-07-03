@@ -12,6 +12,7 @@ export type SelectedAction = Database['public']['Tables']['selected_actions']['R
 
 export type BoardSquareWithAction = BoardSquare & {
   selected_actions: Pick<SelectedAction, 'action_text' | 'global_state'> | null
+  action_marked_globally: boolean
 }
 
 export type BoardWithDetails = Board & {

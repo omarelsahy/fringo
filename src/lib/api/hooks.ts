@@ -167,3 +167,17 @@ export function useMarkSquare(gameId: string, boardId: string) {
     },
   })
 }
+
+export function useReportGuess(gameId: string, boardId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ squareId, result }: { squareId: string; result: string }) =>
+      api.reportGuess(squareId, result),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.board(boardId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.scores(gameId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.guesses(gameId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+    },
+  })
+}

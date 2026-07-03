@@ -892,6 +892,10 @@ export type Database = {
         Returns: undefined
       }
       remove_upvote: { Args: { p_submission_id: string }; Returns: undefined }
+      report_guess: {
+        Args: { p_board_square_id: string; p_result: string }
+        Returns: string
+      }
       resolve_guess: {
         Args: {
           p_giveaway_player_id?: string
