@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BoardSquareWithAction } from '@/types/app'
 
@@ -108,15 +109,23 @@ function SquareButton({
         if (canLongPress) e.preventDefault()
       }}
       className={cn(
-        'aspect-square rounded-md border p-1 text-left text-[10px] leading-tight transition-colors sm:text-xs',
+        'relative aspect-square rounded-md border p-1 text-left text-[10px] leading-tight transition-colors sm:text-xs',
         isFree && 'border-primary/40 bg-primary/10 font-semibold',
         isMarked && 'border-emerald-500/50 bg-emerald-500/20',
-        isLocked && 'border-border bg-secondary/40 opacity-60',
-        square.state === 'unmarked' && 'border-border bg-card hover:border-primary/50',
+        (isLocked || square.state === 'unmarked') && 'border-border bg-card',
+        square.state === 'unmarked' && 'hover:border-primary/50',
         (canMark || canLongPress) && 'cursor-pointer active:scale-95',
       )}
     >
       {isFree ? 'FREE' : square.selected_actions?.action_text ?? '...'}
+      {isLocked && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <X className="h-8 w-8 text-red-500" strokeWidth={3} />
+        </span>
+      )}
     </button>
   )
 }
