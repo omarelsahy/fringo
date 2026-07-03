@@ -38,7 +38,7 @@ export function HomePage() {
           <p>1. Submit secret actions for other players and upvote the best ones.</p>
           <p>2. Get private bingo boards with the same actions in different layouts.</p>
           <p>3. Mark squares when you witness actions. First bingo claims the target!</p>
-          <p>4. Use limited guesses to deduce actions about yourself.</p>
+          <p>4. Report when targets guess your actions — hold a card on your board.</p>
         </CardContent>
       </Card>
     </div>

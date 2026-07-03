@@ -93,24 +93,10 @@ export const api = {
     return rpc<MarkSquareResult>('mark_square', { p_board_square_id: squareId })
   },
 
-  submitGuess(gameId: string, guessText: string) {
-    return rpc<string>('submit_guess', {
-      p_game_id: gameId,
-      p_guess_text: guessText,
-    })
-  },
-
-  resolveGuess(
-    guessId: string,
-    result: string,
-    matchedActionId?: string,
-    giveawayPlayerId?: string,
-  ) {
-    return rpc<void>('resolve_guess', {
-      p_guess_id: guessId,
+  reportGuess(boardSquareId: string, result: string) {
+    return rpc<string>('report_guess', {
+      p_board_square_id: boardSquareId,
       p_result: result,
-      p_matched_selected_action_id: matchedActionId ?? null,
-      p_giveaway_player_id: giveawayPlayerId ?? null,
     })
   },
 

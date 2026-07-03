@@ -48,10 +48,12 @@ For N active players:
 
 ## Guesses (17.6)
 
+- [ ] Board owner long-presses action card to open guess report menu
 - [ ] Pre-action correct guess: target +1, action locked globally
-- [ ] Post-action correct guess: giveaway -1, unmarked squares locked
-- [ ] Incorrect guess consumes token, no score change
-- [ ] Blocked when guesses_remaining = 0
+- [ ] Post-action correct guess: reporting player -1 (giveaway), unmarked squares locked
+- [ ] Incorrect guess consumes target's guess token, no score change
+- [ ] Blocked when target guesses_remaining = 0
+- [ ] Blocked when action already locked
 
 ## End/Reveal (17.7)
 
