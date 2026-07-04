@@ -8,6 +8,7 @@ import type { GuessReportResult } from '@/components/game/guess-report-menu'
 import {
   useBoard,
   useMarkSquare,
+  useGame,
   useGameSettings,
   usePlayers,
   useReportGuess,
@@ -18,8 +19,9 @@ import type { BoardSquareWithAction } from '@/types/app'
 
 export function BoardDetailPage() {
   const { gameId, boardId } = useParams({ from: '/game/$gameId/boards/$boardId' })
-  const { data: board, isLoading } = useBoard(boardId)
-  const { data: settings } = useGameSettings(gameId)
+  const { data: game } = useGame(gameId)
+  const { data: board, isLoading: loadingBoard, isError: boardError } = useBoard(boardId)
+  const { data: settings, isLoading: loadingSettings, isError: settingsError } = useGameSettings(gameId)
   const { data: players } = usePlayers(gameId)
   const markSquare = useMarkSquare(gameId, boardId)
   const reportGuess = useReportGuess(gameId, boardId)
@@ -58,9 +60,12 @@ export function BoardDetailPage() {
     }
   }
 
-  if (isLoading || !board || !settings) return <LoadingScreen />
+  if (loadingBoard || loadingSettings) return <LoadingScreen />
+  if (boardError || settingsError || !board || !settings) {
+    return <ErrorBanner message="Board not found or you do not have access." />
+  }
 
-  const disabled = board.state !== 'active'
+  const disabled = game?.status !== 'active' || board.state !== 'active'
 
   return (
     <>

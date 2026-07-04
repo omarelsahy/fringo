@@ -93,14 +93,7 @@ export function LobbyPage() {
           status={game.status}
           busy={busy}
           onStartSetup={() => run(() => api.startSetup(gameId))}
-          onStartGame={() => run(async () => {
-            try {
-              await api.finalizeSetup(gameId)
-            } catch {
-              // may already be finalized
-            }
-            await api.startGame(gameId)
-          })}
+          onStartGame={() => run(() => api.startGame(gameId))}
           onEndGame={() => run(() => api.endGame(gameId))}
           onReveal={() => run(() => api.revealGame(gameId))}
         />

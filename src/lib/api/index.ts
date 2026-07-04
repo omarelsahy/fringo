@@ -137,6 +137,7 @@ export const api = {
       .select('*')
       .eq('game_id', gameId)
       .eq('user_id', userId)
+      .eq('status', 'active')
       .maybeSingle()
     if (error) throw error
     return data

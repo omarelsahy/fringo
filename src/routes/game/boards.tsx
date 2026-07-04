@@ -6,15 +6,15 @@ import { useMyBoards, usePlayers, useCurrentPlayer, useTargetClaims } from '@/li
 
 export function BoardsPage() {
   const { gameId } = useParams({ from: '/game/$gameId' })
-  const { data: currentPlayer } = useCurrentPlayer(gameId)
-  const { data: boards, isLoading } = useMyBoards(gameId, currentPlayer?.id)
+  const { data: currentPlayer, isLoading: loadingPlayer } = useCurrentPlayer(gameId)
+  const { data: boards, isLoading: loadingBoards } = useMyBoards(gameId, currentPlayer?.id)
   const { data: players } = usePlayers(gameId)
   const { data: claims } = useTargetClaims(gameId)
 
   const playerMap = Object.fromEntries((players ?? []).map((p) => [p.id, p.display_name]))
   const claimedTargets = new Set((claims ?? []).map((c) => c.target_player_id))
 
-  if (isLoading) return <LoadingScreen />
+  if (loadingPlayer || loadingBoards) return <LoadingScreen />
 
   return (
     <>

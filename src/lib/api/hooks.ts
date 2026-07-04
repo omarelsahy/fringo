@@ -42,15 +42,19 @@ export function usePlayers(gameId: string) {
   })
 }
 
-export function useCurrentPlayer(gameId: string) {
+function useAuthUserId() {
   return useQuery({
-    queryKey: queryKeys.currentPlayer(gameId, 'self'),
-    queryFn: async () => {
-      const userId = await getCurrentUserId()
-      if (!userId) return null
-      return api.getCurrentPlayer(gameId, userId)
-    },
-    enabled: !!gameId,
+    queryKey: ['auth', 'userId'],
+    queryFn: getCurrentUserId,
+  })
+}
+
+export function useCurrentPlayer(gameId: string) {
+  const { data: userId } = useAuthUserId()
+  return useQuery({
+    queryKey: queryKeys.currentPlayer(gameId, userId ?? ''),
+    queryFn: () => api.getCurrentPlayer(gameId, userId!),
+    enabled: !!gameId && !!userId,
   })
 }
 
@@ -110,11 +114,16 @@ export function useGuesses(gameId: string) {
   })
 }
 
+function invalidateCurrentPlayer(qc: ReturnType<typeof useQueryClient>, gameId: string) {
+  void qc.invalidateQueries({ queryKey: ['current-player', gameId] })
+}
+
 export function useInvalidateGame(gameId: string) {
   const qc = useQueryClient()
   return () => {
     void qc.invalidateQueries({ queryKey: queryKeys.game(gameId) })
     void qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+    invalidateCurrentPlayer(qc, gameId)
     void qc.invalidateQueries({ queryKey: queryKeys.setupFeed(gameId) })
     void qc.invalidateQueries({ queryKey: queryKeys.setupProgress(gameId) })
     void qc.invalidateQueries({ queryKey: queryKeys.scores(gameId) })
@@ -178,6 +187,7 @@ export function useReportGuess(gameId: string, boardId: string) {
       void qc.invalidateQueries({ queryKey: queryKeys.scores(gameId) })
       void qc.invalidateQueries({ queryKey: queryKeys.guesses(gameId) })
       void qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+      invalidateCurrentPlayer(qc, gameId)
     },
   })
 }
