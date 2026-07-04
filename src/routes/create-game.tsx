@@ -29,7 +29,12 @@ export function CreateGamePage() {
       const gameId = await createGame.mutateAsync({
         name: name.trim() || 'Fringo Game',
         category: category.trim() || undefined,
-        ...settings,
+        board_rows: settings.board_rows,
+        board_cols: settings.board_cols,
+        has_free_space: settings.has_free_space,
+        actions_per_target: settings.actions_per_target,
+        guesses_per_target: settings.guesses_per_target,
+        allow_diagonals: settings.allow_diagonals,
       })
       setLastGameId(gameId)
       void navigate({ to: '/game/$gameId', params: { gameId } })

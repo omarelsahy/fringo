@@ -19,7 +19,7 @@ export function HomePage() {
         <Link to="/create">
           <Button className="w-full" size="lg">Create Game</Button>
         </Link>
-        <Link to="/join">
+        <Link to="/join" search={{ fresh: false, code: undefined, name: undefined, auto: false }}>
           <Button className="w-full" size="lg" variant="secondary">Join with Code</Button>
         </Link>
         {lastGameId && (

@@ -16,6 +16,8 @@ export function useGameRealtime(gameId: string, playerId?: string) {
         { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
         () => {
           void qc.invalidateQueries({ queryKey: queryKeys.game(gameId) })
+          void qc.invalidateQueries({ queryKey: ['my-boards', gameId] })
+          void qc.invalidateQueries({ queryKey: ['board'] })
         },
       )
       .on(
@@ -23,6 +25,7 @@ export function useGameRealtime(gameId: string, playerId?: string) {
         { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
         () => {
           void qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+          void qc.invalidateQueries({ queryKey: ['current-player', gameId] })
         },
       )
       .on(
@@ -46,6 +49,7 @@ export function useGameRealtime(gameId: string, playerId?: string) {
         () => {
           void qc.invalidateQueries({ queryKey: queryKeys.scores(gameId) })
           void qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+          void qc.invalidateQueries({ queryKey: ['current-player', gameId] })
         },
       )
       .on(
@@ -53,7 +57,16 @@ export function useGameRealtime(gameId: string, playerId?: string) {
         { event: '*', schema: 'public', table: 'target_claims', filter: `game_id=eq.${gameId}` },
         () => {
           void qc.invalidateQueries({ queryKey: queryKeys.claims(gameId) })
-          void qc.invalidateQueries({ queryKey: queryKeys.myBoards(gameId, playerId ?? '') })
+          void qc.invalidateQueries({ queryKey: ['my-boards', gameId] })
+          void qc.invalidateQueries({ queryKey: ['board'] })
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'boards', filter: `game_id=eq.${gameId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ['my-boards', gameId] })
+          void qc.invalidateQueries({ queryKey: ['board'] })
         },
       )
       .on(
@@ -61,6 +74,8 @@ export function useGameRealtime(gameId: string, playerId?: string) {
         { event: '*', schema: 'public', table: 'guesses', filter: `game_id=eq.${gameId}` },
         () => {
           void qc.invalidateQueries({ queryKey: queryKeys.guesses(gameId) })
+          void qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+          void qc.invalidateQueries({ queryKey: ['current-player', gameId] })
         },
       )
       .subscribe()

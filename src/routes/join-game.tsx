@@ -1,17 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PageHeader, ErrorBanner, LoadingScreen } from '@/components/layout'
 import { useJoinGame } from '@/lib/api/hooks'
-import { ensureAnonymousAuth, supabase } from '@/lib/supabase'
+import { ensureAnonymousAuth, resetAuthReady, supabase } from '@/lib/supabase'
 import { useSessionStore } from '@/stores/session'
 import { formatInviteCode } from '@/lib/utils'
 
 export function JoinGamePage() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { fresh, code: codeParam, name: nameParam, auto } = useSearch({ from: '/join' })
   const displayName = useSessionStore((s) => s.displayName)
   const setDisplayName = useSessionStore((s) => s.setDisplayName)
@@ -23,7 +25,7 @@ export function JoinGamePage() {
   const autoRan = useRef(false)
   const joinGame = useJoinGame()
 
-  async function handleJoin(overrideCode?: string, overrideName?: string) {
+  const handleJoin = useCallback(async (overrideCode?: string, overrideName?: string) => {
     const joinCode = (overrideCode ?? code).trim()
     const joinName = (overrideName ?? name).trim()
     setError('')
@@ -45,7 +47,7 @@ export function JoinGamePage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to join game')
     }
-  }
+  }, [code, name, joinGame, navigate, setDisplayName, setLastGameId])
 
   useEffect(() => {
     if (codeParam) setCode(formatInviteCode(codeParam))
@@ -56,16 +58,18 @@ export function JoinGamePage() {
     if (!fresh) return
     void (async () => {
       await supabase.auth.signOut({ scope: 'local' })
+      resetAuthReady()
+      void qc.invalidateQueries({ queryKey: ['auth', 'userId'] })
       setBooting(false)
     })()
-  }, [fresh])
+  }, [fresh, qc])
 
   useEffect(() => {
     if (!auto || booting || autoRan.current) return
     if (!codeParam || !nameParam) return
     autoRan.current = true
     void handleJoin(codeParam, nameParam)
-  }, [auto, booting, codeParam, nameParam])
+  }, [auto, booting, codeParam, nameParam, handleJoin])
 
   if (booting || (auto && joinGame.isPending && !error)) {
     return <LoadingScreen message={`Joining as ${nameParam ?? 'player'}...`} />
