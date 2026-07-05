@@ -41,6 +41,23 @@ export function HomePage() {
           <p>4. Report when targets guess your actions — hold a card on your board.</p>
         </CardContent>
       </Card>
+
+      {import.meta.env.DEV && (
+        <Card className="border-dashed border-primary/40">
+          <CardHeader>
+            <CardTitle className="text-base">Dev tools</CardTitle>
+            <CardDescription>Multi-player testing without extra browser windows</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link to="/dev">
+              <Button className="w-full" variant="outline">Open Dev Grid (browser)</Button>
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Desktop app: <code className="rounded bg-secondary px-1">npm run dev:launcher</code>
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

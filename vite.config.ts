@@ -3,11 +3,13 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { devScenarioApiPlugin } from './vite-dev-scenario-plugin'
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    devScenarioApiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],

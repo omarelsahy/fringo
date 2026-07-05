@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { devSessionPersistName } from '@/dev/slot'
 
 interface SessionState {
   displayName: string
@@ -16,6 +17,6 @@ export const useSessionStore = create<SessionState>()(
       setDisplayName: (displayName) => set({ displayName }),
       setLastGameId: (lastGameId) => set({ lastGameId }),
     }),
-    { name: 'fringo-session' },
+    { name: devSessionPersistName() },
   ),
 )

@@ -40,3 +40,9 @@ not change between runs.
 ### Testing
 There is no automated test runner. Verification is manual per `TESTING.md`
 (open 3+ browser profiles/incognito windows to simulate multiple players).
+
+### Dev launcher (multi-player testing)
+See [DEV_LAUNCHER.md](./DEV_LAUNCHER.md). Quick start after Supabase + `npm run dev`:
+`npm run dev:launcher:install` once, then `npm run dev:launcher`.
+Browser fallback: `http://localhost:5173/dev`.
+Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env` from `npx supabase status -o env`.

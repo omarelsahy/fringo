@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:launcher": "npm run dev --prefix dev-launcher",
+    "dev:launcher:install": "npm install --prefix dev-launcher",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

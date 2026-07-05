@@ -17,8 +17,16 @@ import { BoardDetailPage } from '@/routes/game/board-detail'
 import { GuessPage } from '@/routes/game/guess'
 import { ScoreboardPage } from '@/routes/game/scoreboard'
 import { RevealPage } from '@/routes/game/reveal'
+import { DevPlayerPage } from '@/routes/dev/player'
+import { DevGridPage } from '@/routes/dev/grid'
 
 const rootRoute = createRootRoute({
+  component: () => <Outlet />,
+})
+
+const appLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'app',
   component: () => (
     <AppShell>
       <Outlet />
@@ -27,19 +35,19 @@ const rootRoute = createRootRoute({
 })
 
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: '/',
   component: HomePage,
 })
 
 const createRoute_ = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: '/create',
   component: CreateGamePage,
 })
 
 const joinRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: '/join',
   component: JoinGamePage,
   validateSearch: (search: Record<string, unknown>) => ({
@@ -51,7 +59,7 @@ const joinRoute = createRoute({
 })
 
 const gameRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: '/game/$gameId',
   component: GameLayout,
 })
@@ -98,19 +106,45 @@ const revealRoute = createRoute({
   component: RevealPage,
 })
 
+const devPlayerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dev/player',
+  component: DevPlayerPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    slot: Number(search.slot ?? 0),
+    fresh: search.fresh === '1' || search.fresh === true,
+    action: search.action === 'join' ? 'join' as const : 'create' as const,
+    name: typeof search.name === 'string' ? search.name : 'Player',
+    code: typeof search.code === 'string' ? search.code : undefined,
+    preset: typeof search.preset === 'string' ? search.preset : 'game_night',
+    gameName: typeof search.gameName === 'string' ? search.gameName : undefined,
+    navigate: typeof search.navigate === 'string' ? search.navigate : undefined,
+  }),
+})
+
+const devGridRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dev',
+  component: DevGridPage,
+})
+
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  createRoute_,
-  joinRoute,
-  gameRoute.addChildren([
-    lobbyRoute,
-    setupRoute,
-    boardsRoute,
-    boardDetailRoute,
-    guessRoute,
-    scoreboardRoute,
-    revealRoute,
+  appLayoutRoute.addChildren([
+    indexRoute,
+    createRoute_,
+    joinRoute,
+    gameRoute.addChildren([
+      lobbyRoute,
+      setupRoute,
+      boardsRoute,
+      boardDetailRoute,
+      guessRoute,
+      scoreboardRoute,
+      revealRoute,
+    ]),
   ]),
+  devPlayerRoute,
+  devGridRoute,
 ])
 
 export const router = createRouter({ routeTree })
