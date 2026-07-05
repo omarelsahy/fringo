@@ -70,18 +70,6 @@ export function DevGridPage() {
         sessionRef.current = { gameId: gid, inviteCode: code }
         setGameId(gid)
         setInviteCode(code)
-
-        setFrameUrls((prev) => {
-          const next = [...prev]
-          for (let i = 1; i < playerCount; i += 1) {
-            next[i] = buildPlayerUrl(baseUrl, i, {
-              action: 'join',
-              name: names[i] ?? `Player ${i + 1}`,
-              code,
-            })
-          }
-          return next
-        })
       }
     }
 
@@ -127,10 +115,26 @@ export function DevGridPage() {
     setFrameUrls(urls)
 
     try {
-      await waitFor(() => sessionRef.current.inviteCode !== null, 20000)
+      await waitFor(() => sessionRef.current.inviteCode !== null, 45000)
       appendLog(`Invite code: ${sessionRef.current.inviteCode}`)
-      appendLog('Waiting for all players...')
-      await waitFor(() => readySlots.current.size >= playerCount, 45000)
+
+      const code = sessionRef.current.inviteCode!
+      for (let slot = 1; slot < playerCount; slot += 1) {
+        appendLog(`Joining ${names[slot] ?? `Player ${slot + 1}`}...`)
+        setFrameUrls((prev) => {
+          const next = [...prev]
+          next[slot] = buildPlayerUrl(baseUrl, slot, {
+            action: 'join',
+            name: names[slot] ?? `Player ${slot + 1}`,
+            code,
+          })
+          return next
+        })
+        await waitFor(() => readySlots.current.has(slot), 45000)
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+
+      appendLog('All players joined')
 
       const gid = sessionRef.current.gameId
       if (!gid) throw new Error('Missing game id')

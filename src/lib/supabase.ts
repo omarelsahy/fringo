@@ -28,20 +28,12 @@ export const supabase = createClient<Database>(
   },
 )
 
-let authReady: Promise<void> | null = null
-
 export async function ensureAnonymousAuth(): Promise<void> {
-  if (authReady) return authReady
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) return
 
-  authReady = (async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) return
-
-    const { error } = await supabase.auth.signInAnonymously()
-    if (error) throw error
-  })()
-
-  return authReady
+  const { error } = await supabase.auth.signInAnonymously()
+  if (error) throw error
 }
 
 export async function getCurrentUserId(): Promise<string | null> {

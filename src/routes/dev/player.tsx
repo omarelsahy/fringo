@@ -3,7 +3,7 @@ import { useSearch } from '@tanstack/react-router'
 import { LoadingScreen, ErrorBanner } from '@/components/layout'
 import { GAME_PRESETS, type PresetKey } from '@/lib/constants'
 import { api } from '@/lib/api'
-import { ensureAnonymousAuth, supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { notifyPlayerReady } from '@/dev/notify'
 import { useSessionStore } from '@/stores/session'
 
@@ -29,7 +29,9 @@ export function DevPlayerPage() {
         }
 
         setStatus(`Signing in as ${search.name}...`)
-        await ensureAnonymousAuth()
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
+        if (authError) throw authError
+        if (!authData.session) throw new Error('Anonymous sign-in failed')
 
         let gameId: string
         let inviteCode: string
@@ -52,30 +54,39 @@ export function DevPlayerPage() {
           if (!search.code) throw new Error('Invite code required for join action')
           setStatus(`Joining game ${search.code}...`)
 
-          const { data: gameRow, error: gameError } = await supabase
-            .from('games')
-            .select('id, invite_code')
-            .ilike('invite_code', search.code.trim())
-            .single()
+          const playerId = await api.joinGame(search.code, search.name)
 
-          if (gameError || !gameRow) throw gameError ?? new Error('Game not found for invite code')
-          gameId = gameRow.id
-          inviteCode = gameRow.invite_code
+          // Retry logic to handle RLS timing issues
+          let player = null
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const { data, error: playerError } = await supabase
+              .from('game_players')
+              .select('game_id, role')
+              .eq('id', playerId)
+              .maybeSingle()
 
-          await api.joinGame(search.code, search.name)
+            if (playerError) throw playerError
+            if (data) {
+              player = data
+              break
+            }
+            await new Promise((r) => setTimeout(r, 200))
+          }
 
-          const userId = (await supabase.auth.getUser()).data.user?.id
-          if (!userId) throw new Error('Not authenticated')
-
-          const { data: player, error: playerError } = await supabase
-            .from('game_players')
-            .select('game_id, role')
-            .eq('game_id', gameId)
-            .eq('user_id', userId)
-            .single()
-
-          if (playerError || !player) throw playerError ?? new Error('Player not found')
+          if (!player) throw new Error('Player not found after join')
+          gameId = player.game_id
           role = player.role === 'host' ? 'host' : 'player'
+
+          // Retry logic for game fetch
+          let game = null
+          for (let attempt = 0; attempt < 5; attempt++) {
+            game = await api.getGame(gameId)
+            if (game) break
+            await new Promise((r) => setTimeout(r, 200))
+          }
+
+          if (!game) throw new Error('Game not found after join')
+          inviteCode = game.invite_code
         }
 
         setDisplayName(search.name)
@@ -89,19 +100,21 @@ export function DevPlayerPage() {
           role,
         })
 
-        const route = (search.navigate ?? 'lobby') as DevNavigate
-        setStatus(`Opening ${route}...`)
-
-        const routeMap: Record<DevNavigate, string> = {
-          lobby: `/game/${gameId}`,
-          setup: `/game/${gameId}/setup`,
-          boards: `/game/${gameId}/boards`,
-          scoreboard: `/game/${gameId}/scoreboard`,
-          reveal: `/game/${gameId}/reveal`,
+        if (search.navigate) {
+          const route = search.navigate as DevNavigate
+          setStatus(`Opening ${route}...`)
+          const routeMap: Record<DevNavigate, string> = {
+            lobby: `/game/${gameId}`,
+            setup: `/game/${gameId}/setup`,
+            boards: `/game/${gameId}/boards`,
+            scoreboard: `/game/${gameId}/scoreboard`,
+            reveal: `/game/${gameId}/reveal`,
+          }
+          const slotQuery = `?slot=${search.slot}`
+          window.location.replace(`${routeMap[route] ?? routeMap.lobby}${slotQuery}`)
+        } else {
+          setStatus(`Ready as ${search.name}. Waiting for launcher...`)
         }
-
-        const slotQuery = `?slot=${search.slot}`
-        window.location.replace(`${routeMap[route] ?? routeMap.lobby}${slotQuery}`)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Dev bootstrap failed')
       }

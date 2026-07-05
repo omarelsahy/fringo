@@ -4,6 +4,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { AppShell } from '@/components/layout'
 import { HomePage } from '@/routes/home'
@@ -20,34 +21,38 @@ import { RevealPage } from '@/routes/game/reveal'
 import { DevPlayerPage } from '@/routes/dev/player'
 import { DevGridPage } from '@/routes/dev/grid'
 
-const rootRoute = createRootRoute({
-  component: () => <Outlet />,
-})
+function RootLayout() {
+  const isDevRoute = useRouterState({
+    select: (s) => s.location.pathname.startsWith('/dev'),
+  })
 
-const appLayoutRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  id: 'app',
-  component: () => (
+  if (isDevRoute) return <Outlet />
+
+  return (
     <AppShell>
       <Outlet />
     </AppShell>
-  ),
+  )
+}
+
+const rootRoute = createRootRoute({
+  component: RootLayout,
 })
 
 const indexRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
+  getParentRoute: () => rootRoute,
   path: '/',
   component: HomePage,
 })
 
 const createRoute_ = createRoute({
-  getParentRoute: () => appLayoutRoute,
+  getParentRoute: () => rootRoute,
   path: '/create',
   component: CreateGamePage,
 })
 
 const joinRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
+  getParentRoute: () => rootRoute,
   path: '/join',
   component: JoinGamePage,
   validateSearch: (search: Record<string, unknown>) => ({
@@ -59,7 +64,7 @@ const joinRoute = createRoute({
 })
 
 const gameRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
+  getParentRoute: () => rootRoute,
   path: '/game/$gameId',
   component: GameLayout,
 })
@@ -129,19 +134,17 @@ const devGridRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
-  appLayoutRoute.addChildren([
-    indexRoute,
-    createRoute_,
-    joinRoute,
-    gameRoute.addChildren([
-      lobbyRoute,
-      setupRoute,
-      boardsRoute,
-      boardDetailRoute,
-      guessRoute,
-      scoreboardRoute,
-      revealRoute,
-    ]),
+  indexRoute,
+  createRoute_,
+  joinRoute,
+  gameRoute.addChildren([
+    lobbyRoute,
+    setupRoute,
+    boardsRoute,
+    boardDetailRoute,
+    guessRoute,
+    scoreboardRoute,
+    revealRoute,
   ]),
   devPlayerRoute,
   devGridRoute,

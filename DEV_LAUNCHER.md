@@ -49,12 +49,16 @@ Click **Launch Session** in the toolbar. Player views appear in a grid below the
 
 Open `http://localhost:5173/dev` for an iframe-based multi-player grid. Same scenarios, useful if you cannot run Electron.
 
+## Architecture
+
+The launcher uses an **iframe player grid** (not BrowserViews) for reliability across environments. Each iframe loads `/dev/player?slot=N` with isolated session storage. Players join **sequentially** to avoid resource exhaustion.
+
 ## How it works
 
-1. Host view hits `/dev/player` → creates a game (Game Night preset, 3×3 board)
-2. Other views auto-join via invite code
-3. Dev scenario API seeds game state via Supabase service role (local default key)
-4. All views navigate to the target game section
+1. Host iframe hits `/dev/player` → creates a game (Game Night preset, 3×3 board)
+2. Other iframes join one at a time via invite code (postMessage to orchestrator)
+3. Dev scenario API seeds game state via Supabase service role
+4. All iframes navigate to the target game section together
 
 Service role key: set `SUPABASE_SERVICE_ROLE_KEY` in `.env` or rely on the local Supabase demo key.
 

@@ -2,11 +2,23 @@
   box-sizing: border-box;
 }
 
-body {
+html,
+body,
+#root {
+  height: 100%;
   margin: 0;
+}
+
+body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #0f172a;
   color: #e2e8f0;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 button,
@@ -15,8 +27,8 @@ select {
   font: inherit;
 }
 
-.app {
-  height: 148px;
+.toolbar {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -94,11 +106,51 @@ button:disabled {
   min-height: 16px;
 }
 
-.status.error {
-  color: #f87171;
-}
-
 .hint {
   font-size: 11px;
   color: #64748b;
+}
+
+.player-grid {
+  flex: 1;
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  min-height: 0;
+  overflow: auto;
+  background: #0b1220;
+}
+
+.player-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111827;
+}
+
+.player-label {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.player-frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #0f172a;
+}
+
+.player-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 12px;
 }
