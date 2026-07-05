@@ -16,7 +16,24 @@ Install launcher dependencies once:
 npm run dev:launcher:install
 ```
 
-## Launch
+## Windows — double-click launch
+
+Double-click **`Fringo Dev Launcher.bat`** in the repo root. It will:
+
+1. Install dependencies if needed
+2. Start Docker Supabase when Docker Desktop is running
+3. Open the Vite dev server in a separate window (if not already running)
+4. Launch the Electron control panel
+
+Requires Node.js 20+ and Docker Desktop (for local Supabase). If PowerShell blocks `.bat` files, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/win/dev-launcher.ps1
+```
+
+To make a `.exe` shortcut, use any “batch to exe” converter on the `.bat` file, or create a shortcut to the `.bat` on your desktop.
+
+## Launch (manual)
 
 In one terminal:
 
