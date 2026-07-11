@@ -94,6 +94,7 @@ export function BoardDetailPage() {
           squares={board.squares}
           onMark={handleMark}
           onLongPress={disabled ? undefined : setGuessSquare}
+          locked={disabled}
           disabled={disabled || markSquare.isPending}
         />
         <p className="text-center text-xs text-muted-foreground">

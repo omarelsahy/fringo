@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { X } from 'lucide-react'
+import { Lock, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BoardSquareWithAction } from '@/types/app'
 
@@ -12,9 +12,11 @@ interface BingoGridProps {
   onMark?: (squareId: string) => void
   onLongPress?: (square: BoardSquareWithAction) => void
   disabled?: boolean
+  /** Board-level lock (e.g. target claimed) — grey overlay + lock icon */
+  locked?: boolean
 }
 
-export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled }: BingoGridProps) {
+export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked }: BingoGridProps) {
   const grid: (BoardSquareWithAction | null)[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => null),
   )
@@ -24,26 +26,38 @@ export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled }
   }
 
   return (
-    <div
-      className="grid gap-2"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-    >
-      {grid.flatMap((row, r) =>
-        row.map((sq, c) => {
-          if (!sq) {
-            return <div key={`${r}-${c}`} className="aspect-square rounded-md bg-secondary/30" />
-          }
+    <div className="relative">
+      <div
+        className={cn('grid gap-2', locked && 'pointer-events-none select-none opacity-50 grayscale')}
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        aria-hidden={locked || undefined}
+      >
+        {grid.flatMap((row, r) =>
+          row.map((sq, c) => {
+            if (!sq) {
+              return <div key={`${r}-${c}`} className="aspect-square rounded-md bg-secondary/30" />
+            }
 
-          return (
-            <SquareButton
-              key={sq.id}
-              square={sq}
-              disabled={disabled}
-              onMark={onMark}
-              onLongPress={onLongPress}
-            />
-          )
-        }),
+            return (
+              <SquareButton
+                key={sq.id}
+                square={sq}
+                disabled={disabled}
+                onMark={onMark}
+                onLongPress={onLongPress}
+              />
+            )
+          }),
+        )}
+      </div>
+      {locked && (
+        <div
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/60"
+          aria-hidden
+        >
+          <Lock className="h-10 w-10 text-muted-foreground" strokeWidth={2} />
+          <span className="text-sm font-medium text-muted-foreground">Target claimed</span>
+        </div>
       )}
     </div>
   )
@@ -113,8 +127,9 @@ function SquareButton({
         isFree && 'border-primary/40 bg-primary/10 font-semibold',
         isMarked && 'border-emerald-500/50 bg-emerald-500/20',
         (isLocked || square.state === 'unmarked') && 'border-border bg-card',
-        square.state === 'unmarked' && 'hover:border-primary/50',
+        !disabled && square.state === 'unmarked' && 'hover:border-primary/50',
         (canMark || canLongPress) && 'cursor-pointer active:scale-95',
+        disabled && 'cursor-not-allowed',
       )}
     >
       {isFree ? 'FREE' : square.selected_actions?.action_text ?? '...'}
