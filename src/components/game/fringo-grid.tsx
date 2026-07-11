@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Lock, X } from 'lucide-react'
+import { Check, Lock, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BoardSquareWithAction } from '@/types/app'
 
@@ -14,11 +14,13 @@ interface FringoGridProps {
   disabled?: boolean
   /** Board-level lock (e.g. target claimed) — grey overlay + lock icon */
   locked?: boolean
+  /** True when the current player achieved the Fringo on this board */
+  wonFringo?: boolean
   /** Display name of the player who claimed this target */
   claimedBy?: string
 }
 
-export function FringoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked, claimedBy }: FringoGridProps) {
+export function FringoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked, wonFringo, claimedBy }: FringoGridProps) {
   const grid: (BoardSquareWithAction | null)[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => null),
   )
@@ -52,7 +54,16 @@ export function FringoGrid({ rows, cols, squares, onMark, onLongPress, disabled,
           }),
         )}
       </div>
-      {locked && (
+      {locked && wonFringo && (
+        <div
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-emerald-500/25"
+          aria-hidden
+        >
+          <Check className="h-12 w-12 text-emerald-400" strokeWidth={2.5} />
+          <span className="text-base font-semibold text-emerald-300">You got a Fringo!</span>
+        </div>
+      )}
+      {locked && !wonFringo && (
         <div
           className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/60"
           aria-hidden
@@ -141,9 +152,9 @@ function SquareButton({
       {isLocked && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-red-500/25"
         >
-          <X className="h-8 w-8 text-red-500" strokeWidth={3} />
+          <X className="size-[88%] text-red-500" strokeWidth={2.5} />
         </span>
       )}
     </button>

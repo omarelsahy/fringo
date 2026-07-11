@@ -71,25 +71,44 @@ export function useGameRealtime(gameId: string, playerId?: string) {
   }, [gameId, playerId, qc])
 }
 
-export function useBoardRealtime(boardId: string) {
+export function useBoardRealtime(boardId: string, gameId?: string) {
   const qc = useQueryClient()
 
   useEffect(() => {
     if (!boardId) return
+
+    const invalidateBoard = () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.board(boardId) })
+    }
 
     const channel = supabase
       .channel(`board:${boardId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'board_squares', filter: `board_id=eq.${boardId}` },
+        invalidateBoard,
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'boards', filter: `id=eq.${boardId}` },
+        invalidateBoard,
+      )
+
+    if (gameId) {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'target_claims', filter: `game_id=eq.${gameId}` },
         () => {
-          void qc.invalidateQueries({ queryKey: queryKeys.board(boardId) })
+          invalidateBoard()
+          void qc.invalidateQueries({ queryKey: queryKeys.claims(gameId) })
         },
       )
-      .subscribe()
+    }
+
+    void channel.subscribe()
 
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [boardId, qc])
+  }, [boardId, gameId, qc])
 }
