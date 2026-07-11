@@ -247,6 +247,10 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.create_game(
+  text, text, integer, integer, boolean, integer, integer, boolean, integer, integer, integer, integer, text
+);
+
 CREATE OR REPLACE FUNCTION public.create_game(
   p_name text,
   p_category text DEFAULT NULL,
