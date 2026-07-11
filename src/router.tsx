@@ -20,7 +20,7 @@ import { ScoreboardPage } from '@/routes/game/scoreboard'
 import { RevealPage } from '@/routes/game/reveal'
 import { DevPlayerPage } from '@/routes/dev/player'
 import { DevGridPage } from '@/routes/dev/grid'
-import { getDevSlot } from '@/dev/slot'
+import { gameSearch } from '@/lib/route-search'
 
 function RootLayout() {
   const isDevRoute = useRouterState({
@@ -177,7 +177,7 @@ export function GameNav({ gameId, status }: { gameId: string; status: string }) 
     { to: '/game/$gameId/reveal', label: 'Reveal', show: ['revealed'].includes(status) },
   ]
 
-  const slot = getDevSlot()
+  const slotSearch = gameSearch()
 
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-border px-4 py-2">
@@ -186,7 +186,7 @@ export function GameNav({ gameId, status }: { gameId: string; status: string }) 
           key={l.to}
           to={l.to}
           params={{ gameId }}
-          search={slot !== null ? { slot: Number(slot) } : undefined}
+          search={slotSearch}
           className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground [&.active]:bg-primary [&.active]:text-primary-foreground"
         >
           {l.label}

@@ -1,11 +1,20 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import { applyScenario, createAdminClient } from '../src/dev/scenarios'
 
-const url = 'http://127.0.0.1:54321'
-const anon =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-const service =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+function readEnv(name: string, fallback?: string): string {
+  if (process.env[name]) return process.env[name]!
+  if (existsSync('.env')) {
+    const match = readFileSync('.env', 'utf8').match(new RegExp(`^${name}=(.+)$`, 'm'))
+    if (match?.[1]) return match[1].trim()
+  }
+  if (fallback) return fallback
+  throw new Error(`Missing ${name} — run scripts/sync-env-from-supabase.mjs after supabase start`)
+}
+
+const url = readEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:54321')
+const anon = readEnv('VITE_SUPABASE_ANON_KEY')
+const service = readEnv('SUPABASE_SERVICE_ROLE_KEY')
 
 async function createPlayer() {
   const client = createClient(url, anon, { auth: { persistSession: false } })
@@ -58,7 +67,10 @@ const res = await fetch('http://localhost:5173/dev/api/scenario', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ gameId: apiGameId, scenario: 'active' }),
 })
-console.log('vite api', res.status, await res.text())
+const apiBody = await res.text()
+if (!res.ok) throw new Error(`vite api failed: ${res.status} ${apiBody}`)
+console.log('vite api', res.status, apiBody)
 
 const devPage = await fetch('http://localhost:5173/dev')
+if (!devPage.ok) throw new Error(`dev grid page failed: ${devPage.status}`)
 console.log('dev grid page', devPage.status)

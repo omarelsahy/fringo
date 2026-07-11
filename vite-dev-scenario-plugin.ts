@@ -1,4 +1,9 @@
-import type { Plugin } from 'vite'
+/**
+ * Vite dev-server middleware for local multi-player testing only.
+ * Registered exclusively when `mode === 'development'` in vite.config.ts —
+ * never included in production builds.
+ */
+import type { Plugin, ViteDevServer } from 'vite'
 import { loadEnv } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { applyScenario, createAdminClient, type DevScenario } from './src/dev/scenarios'
@@ -9,6 +14,8 @@ import {
   type DevPlayerReadyPayload,
 } from './src/dev/session-bus'
 
+const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
+
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
@@ -18,8 +25,12 @@ function readBody(req: IncomingMessage): Promise<string> {
   })
 }
 
-function setDevCorsHeaders(res: ServerResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+function setDevCorsHeaders(req: IncomingMessage, res: ServerResponse) {
+  const origin = req.headers.origin
+  if (origin && LOCAL_ORIGIN.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 }
@@ -28,7 +39,7 @@ function withDevCors(
   handler: (req: IncomingMessage, res: ServerResponse, ...args: unknown[]) => Promise<void>,
 ) {
   return (req: IncomingMessage, res: ServerResponse, ...args: unknown[]) => {
-    setDevCorsHeaders(res)
+    setDevCorsHeaders(req, res)
     if (req.method === 'OPTIONS') {
       res.statusCode = 204
       res.end()
@@ -41,6 +52,7 @@ function withDevCors(
 export function devScenarioApiPlugin(): Plugin {
   return {
     name: 'fringo-dev-scenario-api',
+    apply: 'serve',
     configureServer(server) {
       server.middlewares.use('/dev/api/scenario', withDevCors((req, res) => handleScenario(req, res, server)))
       server.middlewares.use('/dev/api/player-ready', withDevCors((req, res) => handlePlayerReady(req, res)))
@@ -113,7 +125,7 @@ async function handlePlayerReady(req: IncomingMessage, res: ServerResponse) {
   }
 }
 
-async function handleScenario(req: IncomingMessage, res: ServerResponse, server: Parameters<NonNullable<Plugin['configureServer']>>[0]) {
+async function handleScenario(req: IncomingMessage, res: ServerResponse, server: ViteDevServer) {
   if (req.method !== 'POST') {
     res.statusCode = 405
     res.end('Method not allowed')

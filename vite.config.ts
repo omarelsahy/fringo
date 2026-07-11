@@ -5,11 +5,11 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { devScenarioApiPlugin } from './vite-dev-scenario-plugin'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    devScenarioApiPlugin(),
+    mode === 'development' ? devScenarioApiPlugin() : null,
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
@@ -55,4 +55,4 @@ export default defineConfig({
     strictPort: true,
     cors: true,
   },
-})
+}))

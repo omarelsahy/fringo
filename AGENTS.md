@@ -29,17 +29,14 @@ The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Create `.env`
 key. The local anon key is a stable demo key, so the committed `.env` value does
 not change between runs.
 
-### Build vs. lint vs. dev (gotcha)
-- `npm run dev` and `npm run lint` work. Lint emits 2 warnings, 0 errors.
-- `npm run build` (`tsc -b && vite build`) currently **fails** on a pre-existing
-  TypeScript error in `src/routes/home.tsx`: TanStack Router types treat
-  `search` as required on `<Link to="/join">` because the `/join` route defines
-  `validateSearch`. This is a source-code type issue, not an environment
-  problem, and it does NOT affect the dev server (Vite does not typecheck).
+### Build vs. lint vs. dev
+- `npm run dev` and `npm run lint` work.
+- `npm run build` (`tsc -b && vite build`) must pass — CI runs lint + build on every PR.
+- `npm run test:dev-scenarios` smoke-tests scenario seeding (requires Supabase + Vite; also runs in CI).
 
 ### Testing
-There is no automated test runner. Verification is manual per `TESTING.md`
-(open 3+ browser profiles/incognito windows to simulate multiple players).
+Manual multiplayer checklist: [TESTING.md](./TESTING.md). Automated smoke test:
+`npm run test:dev-scenarios` (after `supabase:reset` and `npm run dev`).
 
 ### Dev launcher (multi-player testing)
 See [DEV_LAUNCHER.md](./DEV_LAUNCHER.md). Quick start after Supabase + `npm run dev`:

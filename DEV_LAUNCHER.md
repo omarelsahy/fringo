@@ -12,7 +12,7 @@ Same as the main app:
 
 The Electron control panel runs on port **5174** and loads player iframes from port **5173**. Both must be running — do not point both at the same port.
 
-Install launcher dependencies once:
+Install launcher dependencies once (pulls Electron and related packages from `dev-launcher/package-lock.json`):
 
 ```bash
 npm run dev:launcher:install
@@ -80,6 +80,16 @@ The launcher uses an **iframe player grid** (not BrowserViews) for reliability a
 4. All iframes navigate to the target game section together
 
 Service role key: set `SUPABASE_SERVICE_ROLE_KEY` in `.env` or rely on the local Supabase demo key.
+
+## Automated smoke test
+
+With Supabase running and `npm run dev` active:
+
+```bash
+npm run test:dev-scenarios
+```
+
+This is also run in CI (`.github/workflows/ci.yml`).
 
 ## Troubleshooting
 

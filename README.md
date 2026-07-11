@@ -33,7 +33,8 @@ npm run dev
 |---------|-------------|
 | `npm run dev` | Start Vite dev server |
 | `npm run dev:launcher` | Start Electron multi-player dev launcher |
-| `npm run dev:launcher:install` | Install dev-launcher dependencies |
+| `npm run dev:launcher:install` | Install dev-launcher dependencies (run once; adds Electron via `dev-launcher/package-lock.json`) |
+| `npm run test:dev-scenarios` | Smoke-test dev scenario seeding (needs Supabase + Vite) |
 | `Fringo Dev Launcher.bat` | Windows: double-click to start Supabase, Vite, and launcher |
 | `npm run build` | Production build |
 | `npm run supabase:start` | Start local Supabase stack |

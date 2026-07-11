@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSessionStore } from '@/stores/session'
+import { joinSearch, gameSearch } from '@/lib/route-search'
 
 export function HomePage() {
   const lastGameId = useSessionStore((s) => s.lastGameId)
@@ -19,11 +20,11 @@ export function HomePage() {
         <Link to="/create">
           <Button className="w-full" size="lg">Create Game</Button>
         </Link>
-        <Link to="/join">
+        <Link to="/join" search={joinSearch()}>
           <Button className="w-full" size="lg" variant="secondary">Join with Code</Button>
         </Link>
         {lastGameId && (
-          <Link to="/game/$gameId" params={{ gameId: lastGameId }}>
+          <Link to="/game/$gameId" params={{ gameId: lastGameId }} search={gameSearch()}>
             <Button className="w-full" variant="outline">Resume Last Game</Button>
           </Link>
         )}

@@ -2,6 +2,7 @@
 const ACTIVE_SLOT_KEY = 'fringo-dev-active-slot'
 
 export function getDevSlot(): string | null {
+  if (!import.meta.env.DEV) return null
   if (typeof window === 'undefined') return null
   const fromUrl = new URLSearchParams(window.location.search).get('slot')
   if (fromUrl !== null && fromUrl !== '') {

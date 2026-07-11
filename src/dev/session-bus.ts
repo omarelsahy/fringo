@@ -1,3 +1,8 @@
+/**
+ * In-memory launch session bus for the dev launcher orchestrator.
+ * Ephemeral — state is lost when the Vite dev server restarts.
+ * Not used in production builds (plugin is dev-only).
+ */
 export interface DevPlayerReadyPayload {
   slot: number
   gameId: string
