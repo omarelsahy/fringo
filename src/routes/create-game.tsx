@@ -9,6 +9,7 @@ import { GAME_PRESETS, type PresetKey } from '@/lib/constants'
 import { useCreateGame } from '@/lib/api/hooks'
 import { ensureAnonymousAuth } from '@/lib/supabase'
 import { useSessionStore } from '@/stores/session'
+import { gameSearch } from '@/lib/route-search'
 import { cn } from '@/lib/utils'
 
 export function CreateGamePage() {
@@ -32,7 +33,7 @@ export function CreateGamePage() {
         ...settings,
       })
       setLastGameId(gameId)
-      void navigate({ to: '/game/$gameId', params: { gameId } })
+      void navigate({ to: '/game/$gameId', params: { gameId }, search: gameSearch() })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create game')
     }

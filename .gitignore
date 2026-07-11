@@ -30,3 +30,6 @@ dist-ssr
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Electron dev launcher build output
+dev-launcher/out

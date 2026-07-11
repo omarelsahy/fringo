@@ -18,8 +18,8 @@ import type { BoardSquareWithAction } from '@/types/app'
 
 export function BoardDetailPage() {
   const { gameId, boardId } = useParams({ from: '/game/$gameId/boards/$boardId' })
-  const { data: board, isLoading } = useBoard(boardId)
-  const { data: settings } = useGameSettings(gameId)
+  const { data: board, isLoading: boardLoading, error: boardError } = useBoard(boardId)
+  const { data: settings, isLoading: settingsLoading, error: settingsError } = useGameSettings(gameId)
   const { data: players } = usePlayers(gameId)
   const markSquare = useMarkSquare(gameId, boardId)
   const reportGuess = useReportGuess(gameId, boardId)
@@ -58,7 +58,15 @@ export function BoardDetailPage() {
     }
   }
 
-  if (isLoading || !board || !settings) return <LoadingScreen />
+  if (boardLoading || settingsLoading) return <LoadingScreen />
+
+  if (boardError || settingsError) {
+    return <ErrorBanner message={boardError?.message ?? settingsError?.message ?? 'Failed to load board'} />
+  }
+
+  if (!board || !settings) {
+    return <ErrorBanner message="Board not found. Try going back and opening it again." />
+  }
 
   const disabled = board.state !== 'active'
 

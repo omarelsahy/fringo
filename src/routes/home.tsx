@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSessionStore } from '@/stores/session'
+import { joinSearch, gameSearch } from '@/lib/route-search'
 
 export function HomePage() {
   const lastGameId = useSessionStore((s) => s.lastGameId)
@@ -19,11 +20,11 @@ export function HomePage() {
         <Link to="/create">
           <Button className="w-full" size="lg">Create Game</Button>
         </Link>
-        <Link to="/join">
+        <Link to="/join" search={joinSearch()}>
           <Button className="w-full" size="lg" variant="secondary">Join with Code</Button>
         </Link>
         {lastGameId && (
-          <Link to="/game/$gameId" params={{ gameId: lastGameId }}>
+          <Link to="/game/$gameId" params={{ gameId: lastGameId }} search={gameSearch()}>
             <Button className="w-full" variant="outline">Resume Last Game</Button>
           </Link>
         )}
@@ -41,6 +42,23 @@ export function HomePage() {
           <p>4. Report when targets guess your actions — hold a card on your board.</p>
         </CardContent>
       </Card>
+
+      {import.meta.env.DEV && (
+        <Card className="border-dashed border-primary/40">
+          <CardHeader>
+            <CardTitle className="text-base">Dev tools</CardTitle>
+            <CardDescription>Multi-player testing without extra browser windows</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link to="/dev">
+              <Button className="w-full" variant="outline">Open Dev Grid (browser)</Button>
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Desktop app: <code className="rounded bg-secondary px-1">npm run dev:launcher</code>
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

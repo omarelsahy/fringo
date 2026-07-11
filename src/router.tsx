@@ -4,6 +4,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { AppShell } from '@/components/layout'
 import { HomePage } from '@/routes/home'
@@ -17,13 +18,26 @@ import { BoardDetailPage } from '@/routes/game/board-detail'
 import { GuessPage } from '@/routes/game/guess'
 import { ScoreboardPage } from '@/routes/game/scoreboard'
 import { RevealPage } from '@/routes/game/reveal'
+import { DevPlayerPage } from '@/routes/dev/player'
+import { DevGridPage } from '@/routes/dev/grid'
+import { gameSearch } from '@/lib/route-search'
 
-const rootRoute = createRootRoute({
-  component: () => (
+function RootLayout() {
+  const isDevRoute = useRouterState({
+    select: (s) => s.location.pathname.startsWith('/dev'),
+  })
+
+  if (isDevRoute) return <Outlet />
+
+  return (
     <AppShell>
       <Outlet />
     </AppShell>
-  ),
+  )
+}
+
+const rootRoute = createRootRoute({
+  component: RootLayout,
 })
 
 const indexRoute = createRoute({
@@ -54,6 +68,9 @@ const gameRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/game/$gameId',
   component: GameLayout,
+  validateSearch: (search: Record<string, unknown>) => ({
+    slot: search.slot !== undefined && search.slot !== '' ? Number(search.slot) : undefined,
+  }),
 })
 
 const lobbyRoute = createRoute({
@@ -98,6 +115,29 @@ const revealRoute = createRoute({
   component: RevealPage,
 })
 
+const devPlayerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dev/player',
+  component: DevPlayerPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    slot: Number(search.slot ?? 0),
+    launchId: typeof search.launchId === 'string' ? search.launchId : undefined,
+    fresh: search.fresh === '1' || search.fresh === true,
+    action: search.action === 'join' ? 'join' as const : 'create' as const,
+    name: typeof search.name === 'string' ? search.name : 'Player',
+    code: typeof search.code === 'string' ? search.code : undefined,
+    preset: typeof search.preset === 'string' ? search.preset : 'game_night',
+    gameName: typeof search.gameName === 'string' ? search.gameName : undefined,
+    navigate: typeof search.navigate === 'string' ? search.navigate : undefined,
+  }),
+})
+
+const devGridRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dev',
+  component: DevGridPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   createRoute_,
@@ -111,6 +151,8 @@ const routeTree = rootRoute.addChildren([
     scoreboardRoute,
     revealRoute,
   ]),
+  devPlayerRoute,
+  devGridRoute,
 ])
 
 export const router = createRouter({ routeTree })
@@ -135,6 +177,8 @@ export function GameNav({ gameId, status }: { gameId: string; status: string }) 
     { to: '/game/$gameId/reveal', label: 'Reveal', show: ['revealed'].includes(status) },
   ]
 
+  const slotSearch = gameSearch()
+
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-border px-4 py-2">
       {links.filter((l) => l.show).map((l) => (
@@ -142,6 +186,7 @@ export function GameNav({ gameId, status }: { gameId: string; status: string }) 
           key={l.to}
           to={l.to}
           params={{ gameId }}
+          search={slotSearch}
           className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground [&.active]:bg-primary [&.active]:text-primary-foreground"
         >
           {l.label}

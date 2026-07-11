@@ -32,6 +32,10 @@ npm run dev
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start Vite dev server |
+| `npm run dev:launcher` | Start Electron multi-player dev launcher |
+| `npm run dev:launcher:install` | Install dev-launcher dependencies (run once; adds Electron via `dev-launcher/package-lock.json`) |
+| `npm run test:dev-scenarios` | Smoke-test dev scenario seeding (needs Supabase + Vite) |
+| `Fringo Dev Launcher.bat` | Windows: double-click to start Supabase, Vite, and launcher |
 | `npm run build` | Production build |
 | `npm run supabase:start` | Start local Supabase stack |
 | `npm run supabase:reset` | Reset DB and run migrations |
@@ -52,4 +56,4 @@ npm run dev
 5. Mark squares, claim targets, use guesses, view scores
 6. Host reveals all hidden data postgame
 
-See [fringo_ai_agent_handoff.md](./fringo_ai_agent_handoff.md) for full game design spec.
+See [fringo_ai_agent_handoff.md](./fringo_ai_agent_handoff.md) for full game design spec, [TESTING.md](./TESTING.md) for the manual checklist, and [DEV_LAUNCHER.md](./DEV_LAUNCHER.md) for the multi-player dev tool.

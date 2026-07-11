@@ -1,5 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
+import { devStorageKey } from '@/dev/slot'
 import type { Database } from '@/types/database'
+
+const devSessionStorage = {
+  getItem: (key: string) => sessionStorage.getItem(devStorageKey(key)),
+  setItem: (key: string, value: string) => sessionStorage.setItem(devStorageKey(key), value),
+  removeItem: (key: string) => sessionStorage.removeItem(devStorageKey(key)),
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -16,25 +23,17 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+      storage: typeof window !== 'undefined' ? devSessionStorage : undefined,
     },
   },
 )
 
-let authReady: Promise<void> | null = null
-
 export async function ensureAnonymousAuth(): Promise<void> {
-  if (authReady) return authReady
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) return
 
-  authReady = (async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) return
-
-    const { error } = await supabase.auth.signInAnonymously()
-    if (error) throw error
-  })()
-
-  return authReady
+  const { error } = await supabase.auth.signInAnonymously()
+  if (error) throw error
 }
 
 export async function getCurrentUserId(): Promise<string | null> {

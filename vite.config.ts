@@ -3,11 +3,13 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { devScenarioApiPlugin } from './vite-dev-scenario-plugin'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
+    mode === 'development' ? devScenarioApiPlugin() : null,
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
@@ -48,4 +50,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+  server: {
+    port: 5173,
+    strictPort: true,
+    cors: true,
+  },
+}))

@@ -9,6 +9,7 @@ import { useJoinGame } from '@/lib/api/hooks'
 import { ensureAnonymousAuth, supabase } from '@/lib/supabase'
 import { useSessionStore } from '@/stores/session'
 import { formatInviteCode } from '@/lib/utils'
+import { gameSearch } from '@/lib/route-search'
 
 export function JoinGamePage() {
   const navigate = useNavigate()
@@ -41,7 +42,7 @@ export function JoinGamePage() {
 
       setDisplayName(joinName)
       setLastGameId(player.game_id)
-      void navigate({ to: '/game/$gameId', params: { gameId: player.game_id } })
+      void navigate({ to: '/game/$gameId', params: { gameId: player.game_id }, search: gameSearch() })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to join game')
     }
