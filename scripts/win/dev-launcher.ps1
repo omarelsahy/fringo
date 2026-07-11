@@ -64,34 +64,63 @@ try {
   Write-Host ''
 }
 
-$viteListening = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
-if (-not $viteListening) {
-  Write-Host '[INFO] Starting Vite dev server...'
+try {
+  $health = Invoke-WebRequest -Uri 'http://127.0.0.1:54321/auth/v1/health' -UseBasicParsing -TimeoutSec 3
+  if ($health.StatusCode -lt 200 -or $health.StatusCode -ge 300) { throw 'bad status' }
+} catch {
+  Write-Host ''
+  Write-Host '[ERROR] Supabase is not reachable at http://127.0.0.1:54321' -ForegroundColor Red
+  Write-Host ''
+  Write-Host '  1. Start Docker Desktop and wait until it is fully running'
+  Write-Host '  2. In this folder, run: npm run supabase:start'
+  Write-Host '  3. Run this launcher again'
+  Write-Host ''
+  Read-Host 'Press Enter to exit'
+  exit 1
+}
+
+Write-Host '[OK] Supabase is running.'
+npx supabase migration up
+if ($LASTEXITCODE -ne 0) {
+  Write-Host '[WARN] Could not apply pending migrations. Try: npm run supabase:reset'
+  Write-Host ''
+}
+node scripts/sync-env-from-supabase.mjs
+if ($LASTEXITCODE -ne 0) { Fail 'Could not sync .env from local Supabase.' }
+Write-Host ''
+
+$gameDevReady = $false
+try {
+  Invoke-WebRequest -Uri 'http://localhost:5173/dev' -UseBasicParsing -TimeoutSec 3 | Out-Null
+  $gameDevReady = $true
+} catch {}
+
+if (-not $gameDevReady) {
+  Write-Host '[INFO] Starting Fringo game dev server on port 5173...'
   Start-Process cmd.exe -ArgumentList '/k', 'npm run dev' -WorkingDirectory (Get-Location) -WindowStyle Normal
   $startedVite = $true
 
-  Write-Host '[INFO] Waiting for http://localhost:5173 ...'
+  Write-Host '[INFO] Waiting for http://localhost:5173/dev ...'
   $deadline = (Get-Date).AddSeconds(90)
-  $ready = $false
   while ((Get-Date) -lt $deadline) {
     try {
-      Invoke-WebRequest -Uri 'http://localhost:5173/' -UseBasicParsing -TimeoutSec 2 | Out-Null
-      $ready = $true
+      Invoke-WebRequest -Uri 'http://localhost:5173/dev' -UseBasicParsing -TimeoutSec 2 | Out-Null
+      $gameDevReady = $true
       break
     } catch {
       Start-Sleep -Seconds 2
     }
   }
-  if (-not $ready) {
-    Fail 'Dev server did not become ready. Check the "Fringo Dev Server" window.'
+  if (-not $gameDevReady) {
+    Fail 'Game dev server did not become ready. Check the "Fringo Dev Server" window.'
   }
-  Write-Host '[OK] Dev server is ready.'
+  Write-Host '[OK] Game dev server is ready.'
 } else {
-  Write-Host '[OK] Dev server already running on port 5173.'
+  Write-Host '[OK] Game dev server already running on port 5173.'
 }
 
 Write-Host ''
-Write-Host '[INFO] Opening Electron dev launcher...'
+Write-Host '[INFO] Opening Electron dev launcher (control panel on port 5174)...'
 Write-Host ''
 
 npm run dev:launcher

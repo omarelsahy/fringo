@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { routeForScenario, type DevScenario } from '@/dev/scenarios'
+import type { DevPlayerReadyPayload } from '@/dev/session-bus'
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 
@@ -15,7 +16,7 @@ const SCENARIO_LABELS: Record<DevScenario, string> = {
   reveal: 'Reveal — post-game results',
 }
 
-function buildPlayerUrl(baseUrl: string, slot: number, opts: {
+function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
   action: 'create' | 'join'
   name: string
   code?: string
@@ -23,6 +24,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, opts: {
   const params = new URLSearchParams({
     fresh: '1',
     slot: String(slot),
+    launchId,
     action: opts.action,
     name: opts.name,
     preset: 'game_night',
@@ -42,6 +44,7 @@ export function DevGridPage() {
   const [log, setLog] = useState<string[]>([])
   const [launching, setLaunching] = useState(false)
   const readySlots = useRef(new Set<number>())
+  const launchIdRef = useRef(crypto.randomUUID())
   const sessionRef = useRef<{ gameId: string | null; inviteCode: string | null }>({
     gameId: null,
     inviteCode: null,
@@ -53,29 +56,42 @@ export function DevGridPage() {
     setLog((prev) => [...prev.slice(-40), message])
   }, [])
 
+  const handlePlayerReady = useCallback((payload: DevPlayerReadyPayload) => {
+    const slot = Number(payload.slot)
+    if (readySlots.current.has(slot)) return
+
+    readySlots.current.add(slot)
+    appendLog(`${payload.displayName} ready (slot ${slot})`)
+
+    if (slot === 0) {
+      sessionRef.current = { gameId: payload.gameId, inviteCode: payload.inviteCode }
+      setGameId(payload.gameId)
+      setInviteCode(payload.inviteCode)
+    }
+  }, [appendLog])
+
+  const pollPlayerReady = useCallback(async () => {
+    try {
+      const res = await fetch(`${baseUrl}/dev/api/player-ready?launchId=${encodeURIComponent(launchIdRef.current)}`)
+      if (!res.ok) return
+      const data = (await res.json()) as { ready?: DevPlayerReadyPayload[] }
+      for (const payload of data.ready ?? []) {
+        handlePlayerReady(payload)
+      }
+    } catch {
+      // ignore
+    }
+  }, [baseUrl, handlePlayerReady])
+
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.data?.type !== 'fringo-dev-player-ready') return
-      const { slot, gameId: gid, inviteCode: code, displayName } = event.data as {
-        slot: number
-        gameId: string
-        inviteCode: string
-        displayName: string
-      }
-
-      readySlots.current.add(slot)
-      appendLog(`${displayName} ready (slot ${slot})`)
-
-      if (slot === 0) {
-        sessionRef.current = { gameId: gid, inviteCode: code }
-        setGameId(gid)
-        setInviteCode(code)
-      }
+      handlePlayerReady(event.data as DevPlayerReadyPayload)
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [appendLog, baseUrl, names, playerCount])
+  }, [handlePlayerReady])
 
   async function applyScenarioApi(gid: string, selected: DevScenario) {
     appendLog(`Applying scenario: ${selected}`)
@@ -103,6 +119,12 @@ export function DevGridPage() {
 
   async function handleLaunch() {
     setLaunching(true)
+    const previousLaunchId = launchIdRef.current
+    launchIdRef.current = crypto.randomUUID()
+    void fetch(`${baseUrl}/dev/api/player-ready?launchId=${encodeURIComponent(previousLaunchId)}`, {
+      method: 'DELETE',
+    }).catch(() => {})
+
     readySlots.current.clear()
     sessionRef.current = { gameId: null, inviteCode: null }
     setGameId(null)
@@ -111,11 +133,11 @@ export function DevGridPage() {
     appendLog('Launching host...')
 
     const urls: (string | null)[] = Array(6).fill(null)
-    urls[0] = buildPlayerUrl(baseUrl, 0, { action: 'create', name: names[0] ?? 'Alice' })
+    urls[0] = buildPlayerUrl(baseUrl, 0, launchIdRef.current, { action: 'create', name: names[0] ?? 'Alice' })
     setFrameUrls(urls)
 
     try {
-      await waitFor(() => sessionRef.current.inviteCode !== null, 45000)
+      await waitFor(() => sessionRef.current.inviteCode !== null, 45000, pollPlayerReady)
       appendLog(`Invite code: ${sessionRef.current.inviteCode}`)
 
       const code = sessionRef.current.inviteCode!
@@ -123,14 +145,14 @@ export function DevGridPage() {
         appendLog(`Joining ${names[slot] ?? `Player ${slot + 1}`}...`)
         setFrameUrls((prev) => {
           const next = [...prev]
-          next[slot] = buildPlayerUrl(baseUrl, slot, {
+          next[slot] = buildPlayerUrl(baseUrl, slot, launchIdRef.current, {
             action: 'join',
             name: names[slot] ?? `Player ${slot + 1}`,
             code,
           })
           return next
         })
-        await waitFor(() => readySlots.current.has(slot), 45000)
+        await waitFor(() => readySlots.current.has(slot), 45000, pollPlayerReady)
         await new Promise((r) => setTimeout(r, 1500))
       }
 
@@ -275,7 +297,7 @@ export function DevGridPage() {
   )
 }
 
-function waitFor(predicate: () => boolean, timeoutMs: number) {
+function waitFor(predicate: () => boolean, timeoutMs: number, poll?: () => Promise<void>) {
   return new Promise<void>((resolve, reject) => {
     const start = Date.now()
     const tick = () => {
@@ -287,7 +309,7 @@ function waitFor(predicate: () => boolean, timeoutMs: number) {
         reject(new Error('Timed out waiting for players'))
         return
       }
-      setTimeout(tick, 250)
+      void (poll?.() ?? Promise.resolve()).finally(() => setTimeout(tick, 250))
     }
     tick()
   })

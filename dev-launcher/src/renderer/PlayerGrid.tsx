@@ -7,10 +7,26 @@ import {
   forwardRef,
 } from 'react'
 import { routeForScenario, type DevScenario } from '../../../src/dev/scenarios'
+import type { DevPlayerReadyPayload } from '../../../src/dev/session-bus'
+
+async function applyScenarioFromGameServer(baseUrl: string, gameId: string, scenario: DevScenario) {
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/dev/api/scenario`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId, scenario }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Scenario failed'
+    if (message !== 'Failed to fetch') throw e
+    await window.fringoLauncher.applyScenario(gameId, scenario)
+  }
+}
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 
-function buildPlayerUrl(baseUrl: string, slot: number, opts: {
+function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
   action: 'create' | 'join'
   name: string
   code?: string
@@ -18,6 +34,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, opts: {
   const params = new URLSearchParams({
     fresh: '1',
     slot: String(slot),
+    launchId,
     action: opts.action,
     name: opts.name,
     preset: 'game_night',
@@ -50,24 +67,6 @@ type Props = {
   onLaunchComplete?: (success: boolean) => void
 }
 
-function waitFor(predicate: () => boolean, timeoutMs: number) {
-  return new Promise<void>((resolve, reject) => {
-    const start = Date.now()
-    const tick = () => {
-      if (predicate()) {
-        resolve()
-        return
-      }
-      if (Date.now() - start > timeoutMs) {
-        reject(new Error('Timed out waiting for players'))
-        return
-      }
-      setTimeout(tick, 300)
-    }
-    tick()
-  })
-}
-
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -83,11 +82,62 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
     gameId: null,
     inviteCode: null,
   })
-  const nextJoinSlot = useRef(1)
+  const launchIdRef = useRef(crypto.randomUUID())
   const playerCountRef = useRef(playerCount)
   const namesRef = useRef(names)
+  const onStatusRef = useRef(onStatus)
+  const onSessionChangeRef = useRef(onSessionChange)
+  const onLaunchCompleteRef = useRef(onLaunchComplete)
+
   playerCountRef.current = playerCount
   namesRef.current = names
+  onStatusRef.current = onStatus
+  onSessionChangeRef.current = onSessionChange
+  onLaunchCompleteRef.current = onLaunchComplete
+
+  const handlePlayerReady = useCallback((payload: DevPlayerReadyPayload) => {
+    const slot = Number(payload.slot)
+    if (readySlots.current.has(slot)) return
+
+    readySlots.current.add(slot)
+    onStatusRef.current(`${payload.displayName} ready (${readySlots.current.size}/${playerCountRef.current})`, {
+      gameId: payload.gameId,
+      inviteCode: payload.inviteCode,
+    })
+
+    if (slot === 0) {
+      sessionRef.current = { gameId: payload.gameId, inviteCode: payload.inviteCode }
+      onSessionChangeRef.current(payload.gameId, payload.inviteCode)
+    }
+  }, [])
+
+  const pollPlayerReady = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${baseUrl.replace(/\/$/, '')}/dev/api/player-ready?launchId=${encodeURIComponent(launchIdRef.current)}`,
+      )
+      if (!res.ok) return
+      const data = (await res.json()) as { ready?: DevPlayerReadyPayload[] }
+      for (const payload of data.ready ?? []) {
+        handlePlayerReady(payload)
+      }
+    } catch {
+      // Vite dev server may still be starting
+    }
+  }, [baseUrl, handlePlayerReady])
+
+  const waitFor = useCallback(
+    async (predicate: () => boolean, timeoutMs: number) => {
+      const start = Date.now()
+      while (Date.now() - start < timeoutMs) {
+        if (predicate()) return
+        await pollPlayerReady()
+        await delay(300)
+      }
+      throw new Error('Timed out waiting for players')
+    },
+    [pollPlayerReady],
+  )
 
   const navigateAll = useCallback(
     (route: string) => {
@@ -100,29 +150,38 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
         }
         return next
       })
-      onStatus(`Navigated all players to ${route}`, { gameId: gid, inviteCode: sessionRef.current.inviteCode })
+      onStatusRef.current(`Navigated all players to ${route}`, {
+        gameId: gid,
+        inviteCode: sessionRef.current.inviteCode,
+      })
     },
-    [baseUrl, onStatus],
+    [baseUrl],
   )
 
   const reloadAll = useCallback(() => {
     setReloadKey((k) => k + 1)
-    onStatus('Reloaded all player views', sessionRef.current)
-  }, [onStatus])
+    onStatusRef.current('Reloaded all player views', sessionRef.current)
+  }, [])
 
   const reset = useCallback(() => {
+    const previousLaunchId = launchIdRef.current
     readySlots.current.clear()
-    nextJoinSlot.current = 1
     sessionRef.current = { gameId: null, inviteCode: null }
+    launchIdRef.current = crypto.randomUUID()
     setFrameUrls(Array(6).fill(null))
-    onSessionChange(null, null)
-  }, [onSessionChange])
+    onSessionChangeRef.current(null, null)
+
+    void fetch(
+      `${baseUrl.replace(/\/$/, '')}/dev/api/player-ready?launchId=${encodeURIComponent(previousLaunchId)}`,
+      { method: 'DELETE' },
+    ).catch(() => {})
+  }, [baseUrl])
 
   const loadJoinSlot = useCallback(
     (slot: number, code: string) => {
       setFrameUrls((prev) => {
         const next = [...prev]
-        next[slot] = buildPlayerUrl(baseUrl, slot, {
+        next[slot] = buildPlayerUrl(baseUrl, slot, launchIdRef.current, {
           action: 'join',
           name: namesRef.current[slot] ?? `Player ${slot + 1}`,
           code,
@@ -136,17 +195,19 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
   const launch = useCallback(async () => {
     reset()
     readySlots.current.clear()
-    nextJoinSlot.current = 1
-    onStatus('Launching host...')
+    onStatusRef.current('Launching host...')
 
     setFrameUrls(() => {
       const urls: (string | null)[] = Array(6).fill(null)
-      urls[0] = buildPlayerUrl(baseUrl, 0, { action: 'create', name: namesRef.current[0] ?? 'Alice' })
+      urls[0] = buildPlayerUrl(baseUrl, 0, launchIdRef.current, {
+        action: 'create',
+        name: namesRef.current[0] ?? 'Alice',
+      })
       return urls
     })
 
     await waitFor(() => sessionRef.current.inviteCode !== null, 45000)
-    onStatus(`Invite ${sessionRef.current.inviteCode} — joining players sequentially...`, sessionRef.current)
+    onStatusRef.current(`Invite ${sessionRef.current.inviteCode} — joining players sequentially...`, sessionRef.current)
 
     const code = sessionRef.current.inviteCode!
     for (let slot = 1; slot < playerCountRef.current; slot += 1) {
@@ -161,8 +222,11 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
     if (!gid) throw new Error('Missing game id')
 
     if (scenario !== 'lobby') {
-      onStatus(`Applying scenario: ${scenario}...`, { gameId: gid, inviteCode: sessionRef.current.inviteCode })
-      await window.fringoLauncher.applyScenario(gid, scenario)
+      onStatusRef.current(`Applying scenario: ${scenario}...`, {
+        gameId: gid,
+        inviteCode: sessionRef.current.inviteCode,
+      })
+      await applyScenarioFromGameServer(baseUrl, gid, scenario)
     }
 
     const route = routeForScenario(scenario)
@@ -174,44 +238,33 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
       return next
     })
 
-    onStatus(`Session ready (${scenario})`, { gameId: gid, inviteCode: sessionRef.current.inviteCode })
-    onLaunchComplete?.(true)
-  }, [baseUrl, loadJoinSlot, onLaunchComplete, onStatus, reset, scenario])
+    onStatusRef.current(`Session ready (${scenario})`, {
+      gameId: gid,
+      inviteCode: sessionRef.current.inviteCode,
+    })
+    onLaunchCompleteRef.current?.(true)
+  }, [baseUrl, loadJoinSlot, reset, scenario, waitFor])
 
   useImperativeHandle(ref, () => ({ launch, navigateAll, reloadAll, reset }), [launch, navigateAll, reloadAll, reset])
 
   useEffect(() => {
-    void launch().catch((e) => {
-      onStatus(e instanceof Error ? e.message : 'Launch failed', { error: true })
-      onLaunchComplete?.(false)
-    })
-  }, [launch, onLaunchComplete, onStatus])
-
-  useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.data?.type !== 'fringo-dev-player-ready') return
-      const { slot, gameId: gid, inviteCode: code, displayName } = event.data as {
-        slot: number
-        gameId: string
-        inviteCode: string
-        displayName: string
-      }
-
-      readySlots.current.add(slot)
-      onStatus(`${displayName} ready (${readySlots.current.size}/${playerCountRef.current})`, {
-        gameId: gid,
-        inviteCode: code,
-      })
-
-      if (slot === 0) {
-        sessionRef.current = { gameId: gid, inviteCode: code }
-        onSessionChange(gid, code)
-      }
+      handlePlayerReady(event.data as DevPlayerReadyPayload)
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [onSessionChange, onStatus])
+  }, [handlePlayerReady])
+
+  useEffect(() => {
+    void launch().catch((e) => {
+      onStatusRef.current(e instanceof Error ? e.message : 'Launch failed', { error: true })
+      onLaunchCompleteRef.current?.(false)
+    })
+    // Each PlayerGrid instance launches once when mounted (parent remounts via launchToken).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div

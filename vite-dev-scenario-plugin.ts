@@ -2,6 +2,12 @@ import type { Plugin } from 'vite'
 import { loadEnv } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { applyScenario, createAdminClient, type DevScenario } from './src/dev/scenarios'
+import {
+  clearPlayerReadySession,
+  getPlayerReadyState,
+  registerPlayerReady,
+  type DevPlayerReadyPayload,
+} from './src/dev/session-bus'
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -12,14 +18,98 @@ function readBody(req: IncomingMessage): Promise<string> {
   })
 }
 
+function setDevCorsHeaders(res: ServerResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+}
+
+function withDevCors(
+  handler: (req: IncomingMessage, res: ServerResponse, ...args: unknown[]) => Promise<void>,
+) {
+  return (req: IncomingMessage, res: ServerResponse, ...args: unknown[]) => {
+    setDevCorsHeaders(res)
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204
+      res.end()
+      return
+    }
+    void handler(req, res, ...args)
+  }
+}
+
 export function devScenarioApiPlugin(): Plugin {
   return {
     name: 'fringo-dev-scenario-api',
     configureServer(server) {
-      server.middlewares.use('/dev/api/scenario', (req, res, next) => {
-        void handleScenario(req, res, server).catch(next)
-      })
+      server.middlewares.use('/dev/api/scenario', withDevCors((req, res) => handleScenario(req, res, server)))
+      server.middlewares.use('/dev/api/player-ready', withDevCors((req, res) => handlePlayerReady(req, res)))
     },
+  }
+}
+
+async function handlePlayerReady(req: IncomingMessage, res: ServerResponse) {
+  const url = new URL(req.url ?? '/', 'http://localhost')
+
+  if (req.method === 'GET') {
+    const launchId = url.searchParams.get('launchId')
+    if (!launchId) {
+      res.statusCode = 400
+      res.end('launchId required')
+      return
+    }
+
+    res.statusCode = 200
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ ready: getPlayerReadyState(launchId) }))
+    return
+  }
+
+  if (req.method === 'DELETE') {
+    const launchId = url.searchParams.get('launchId')
+    if (!launchId) {
+      res.statusCode = 400
+      res.end('launchId required')
+      return
+    }
+
+    clearPlayerReadySession(launchId)
+    res.statusCode = 200
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ ok: true }))
+    return
+  }
+
+  if (req.method !== 'POST') {
+    res.statusCode = 405
+    res.end('Method not allowed')
+    return
+  }
+
+  try {
+    const raw = await readBody(req)
+    const body = JSON.parse(raw) as { launchId?: string } & DevPlayerReadyPayload
+
+    if (!body.launchId || body.slot === undefined || !body.gameId || !body.inviteCode || !body.displayName) {
+      res.statusCode = 400
+      res.end('launchId, slot, gameId, inviteCode, and displayName required')
+      return
+    }
+
+    registerPlayerReady(body.launchId, {
+      slot: Number(body.slot),
+      gameId: body.gameId,
+      inviteCode: body.inviteCode,
+      displayName: body.displayName,
+      role: body.role === 'host' ? 'host' : 'player',
+    })
+
+    res.statusCode = 200
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ ok: true }))
+  } catch (e) {
+    res.statusCode = 500
+    res.end(e instanceof Error ? e.message : 'Player ready failed')
   }
 }
 

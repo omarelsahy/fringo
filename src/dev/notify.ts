@@ -14,7 +14,17 @@ declare global {
   }
 }
 
-export function notifyPlayerReady(payload: DevPlayerReadyPayload) {
+export function notifyPlayerReady(payload: DevPlayerReadyPayload, launchId?: string) {
   window.fringoDev?.playerReady(payload)
   window.parent.postMessage({ type: 'fringo-dev-player-ready', ...payload }, '*')
+
+  if (launchId) {
+    void fetch(`${window.location.origin}/dev/api/player-ready`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ launchId, ...payload }),
+    }).catch(() => {
+      // postMessage remains the primary path for same-origin parents
+    })
+  }
 }

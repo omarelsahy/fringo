@@ -7,14 +7,31 @@ import type { DevScenario } from '../../../src/dev/scenarios'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-function loadServiceRoleKey(): string {
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY
-  const envPath = path.resolve(__dirname, '../../../.env')
+const envPath = path.resolve(__dirname, '../../../.env')
+
+function readEnvVar(name: string): string | null {
+  if (process.env[name]) return process.env[name]!
   if (existsSync(envPath)) {
-    const match = readFileSync(envPath, 'utf8').match(/^SUPABASE_SERVICE_ROLE_KEY=(.+)$/m)
+    const match = readFileSync(envPath, 'utf8').match(new RegExp(`^${name}=(.+)$`, 'm'))
     if (match?.[1]) return match[1].trim()
   }
+  return null
+}
+
+function loadServiceRoleKey(): string {
+  const key = readEnvVar('SUPABASE_SERVICE_ROLE_KEY')
+  if (key) return key
   throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY — add it to .env from `npx supabase status -o env`')
+}
+
+async function checkSupabaseHealth(): Promise<{ ok: boolean; url: string }> {
+  const url = readEnvVar('VITE_SUPABASE_URL') ?? 'http://127.0.0.1:54321'
+  try {
+    const res = await fetch(`${url.replace(/\/$/, '')}/auth/v1/health`)
+    return { ok: res.ok, url }
+  } catch {
+    return { ok: false, url }
+  }
 }
 
 function resolvePreload(name: string) {
@@ -56,11 +73,26 @@ app.whenReady().then(() => {
   createMainWindow()
 
   ipcMain.handle('check-dev-server', async (_event, url: string) => waitForDevServer(url, 5000))
+  ipcMain.handle('check-supabase', async () => checkSupabaseHealth())
 
   ipcMain.handle('apply-scenario', async (_event, payload: { gameId: string; scenario: DevScenario }) => {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321'
+    const supabaseUrl = readEnvVar('VITE_SUPABASE_URL') ?? 'http://127.0.0.1:54321'
     const admin = createAdminClient(supabaseUrl, loadServiceRoleKey())
-    await applyScenario(admin, payload.gameId, payload.scenario)
+    try {
+      await applyScenario(admin, payload.gameId, payload.scenario)
+    } catch (e) {
+      const message =
+        e && typeof e === 'object' && 'message' in e && typeof e.message === 'string'
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : 'Scenario failed'
+      const hint =
+        message.includes('permission denied')
+          ? ' Run: npm run supabase:reset'
+          : ''
+      throw new Error(`${message}${hint}`)
+    }
   })
 
   app.on('activate', () => {

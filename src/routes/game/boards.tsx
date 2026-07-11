@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader, LoadingScreen } from '@/components/layout'
 import { useMyBoards, usePlayers, useCurrentPlayer, useTargetClaims } from '@/lib/api/hooks'
+import { getDevSlot } from '@/dev/slot'
 
 export function BoardsPage() {
   const { gameId } = useParams({ from: '/game/$gameId' })
@@ -27,6 +28,7 @@ export function BoardsPage() {
               key={board.id}
               to="/game/$gameId/boards/$boardId"
               params={{ gameId, boardId: board.id }}
+              search={getDevSlot() !== null ? { slot: Number(getDevSlot()) } : undefined}
             >
               <Card className="transition-colors hover:border-primary/50">
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">

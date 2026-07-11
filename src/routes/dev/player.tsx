@@ -98,7 +98,7 @@ export function DevPlayerPage() {
           inviteCode,
           displayName: search.name,
           role,
-        })
+        }, search.launchId)
 
         if (search.navigate) {
           const route = search.navigate as DevNavigate
@@ -116,7 +116,15 @@ export function DevPlayerPage() {
           setStatus(`Ready as ${search.name}. Waiting for launcher...`)
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Dev bootstrap failed')
+        const message = e instanceof Error ? e.message : 'Dev bootstrap failed'
+        if (message === 'Failed to fetch') {
+          const url = import.meta.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321'
+          setError(
+            `Cannot reach Supabase at ${url}. Start Docker Desktop, then run: npm run supabase:start`,
+          )
+        } else {
+          setError(message)
+        }
       }
     })()
   }, [search, setDisplayName, setLastGameId])

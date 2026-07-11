@@ -10,6 +10,8 @@ Same as the main app:
 2. `.env` with `VITE_SUPABASE_ANON_KEY` (legacy JWT from `npx supabase status`)
 3. Game dev server: `npm run dev` (port 5173)
 
+The Electron control panel runs on port **5174** and loads player iframes from port **5173**. Both must be running — do not point both at the same port.
+
 Install launcher dependencies once:
 
 ```bash
@@ -83,7 +85,8 @@ Service role key: set `SUPABASE_SERVICE_ROLE_KEY` in `.env` or rely on the local
 
 | Issue | Fix |
 |-------|-----|
+| **"Failed to fetch" / Supabase not reachable** | Start **Docker Desktop**, wait until it is running, then `npm run supabase:start`. Re-run `Fringo Dev Launcher.bat`. |
 | "Dev server not reachable" | Run `npm run dev` in repo root |
-| Launch times out | Ensure Supabase is running; check browser console in a player view |
-| Scenario failed | Run `npm run supabase:reset`; verify service role key |
-| Blank player panels | Click **Reload All** or **Reset** then relaunch |
+| Launch times out / stuck on "Launching host..." | Restart Vite (`npm run dev`) so the dev API is loaded, then relaunch. Ensure Supabase is running. |
+| Scenario failed / permission denied | Run `npm run supabase:reset` to apply dev launcher DB grants. |
+| **Blank player panels / stuck on "Launching host"** | Ensure the **game** dev server is on port 5173 (`npm run dev`), not just Electron. Close all terminals and re-run `Fringo Dev Launcher.bat`. |

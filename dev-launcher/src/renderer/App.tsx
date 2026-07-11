@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DevScenario } from '../../../src/dev/scenarios'
 import { SCENARIO_LABELS } from '../../../src/dev/scenarios'
 import { DEFAULT_NAMES, PlayerGrid, type PlayerGridHandle } from './PlayerGrid'
@@ -16,22 +16,55 @@ export function App() {
   const [busy, setBusy] = useState(false)
   const [sessionActive, setSessionActive] = useState(false)
   const [serverOk, setServerOk] = useState<boolean | null>(null)
+  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null)
+  const [supabaseUrl, setSupabaseUrl] = useState('http://127.0.0.1:54321')
   const gridRef = useRef<PlayerGridHandle>(null)
   const [launchToken, setLaunchToken] = useState(0)
 
   useEffect(() => {
-    void window.fringoLauncher.checkDevServer(baseUrl).then(setServerOk)
+    void window.fringoLauncher.checkDevServer(`${baseUrl}/dev`).then(setServerOk)
+    void window.fringoLauncher.checkSupabase().then(({ ok, url }) => {
+      setSupabaseOk(ok)
+      setSupabaseUrl(url)
+    })
   }, [baseUrl])
 
   const visibleNames = names.slice(0, playerCount)
 
-  function handleStatus(message: string, extra?: { gameId?: string | null; inviteCode?: string | null; error?: boolean }) {
+  const handleStatus = useCallback((
+    message: string,
+    extra?: { gameId?: string | null; inviteCode?: string | null; error?: boolean },
+  ) => {
     setStatus(message)
     if (extra?.gameId !== undefined) setGameId(extra.gameId)
     if (extra?.inviteCode !== undefined) setInviteCode(extra.inviteCode)
-  }
+  }, [])
+
+  const handleSessionChange = useCallback((gid: string | null, code: string | null) => {
+    setGameId(gid)
+    setInviteCode(code)
+  }, [])
+
+  const handleLaunchComplete = useCallback(() => {
+    setBusy(false)
+  }, [])
 
   async function handleLaunch() {
+    const { ok, url } = await window.fringoLauncher.checkSupabase()
+    setSupabaseOk(ok)
+    setSupabaseUrl(url)
+    if (!ok) {
+      setStatus(`Supabase not reachable at ${url}. Start Docker Desktop, then run: npm run supabase:start`)
+      return
+    }
+
+    const devOk = await window.fringoLauncher.checkDevServer(`${baseUrl}/dev`)
+    setServerOk(devOk)
+    if (!devOk) {
+      setStatus('Dev server not reachable — run `npm run dev` in the repo root.')
+      return
+    }
+
     setBusy(true)
     setGameId(null)
     setInviteCode(null)
@@ -132,8 +165,11 @@ export function App() {
         </div>
 
         <div className="hint">
-          {serverOk === false && 'Dev server not reachable — run `npm run dev` in the repo root.'}
-          {serverOk === true && 'Iframe player grid — each panel has isolated auth via ?slot=N.'}
+          {supabaseOk === false &&
+            `Supabase not reachable at ${supabaseUrl}. Start Docker Desktop, then run: npm run supabase:start`}
+          {supabaseOk === true && serverOk === false &&
+            'Game dev server not reachable at port 5173 — close all terminals and re-run Fringo Dev Launcher.bat.'}
+          {supabaseOk === true && serverOk === true && 'Iframe player grid — each panel has isolated auth via ?slot=N.'}
         </div>
       </div>
 
@@ -146,11 +182,8 @@ export function App() {
           names={visibleNames}
           scenario={scenario}
           onStatus={handleStatus}
-          onSessionChange={(gid, code) => {
-            setGameId(gid)
-            setInviteCode(code)
-          }}
-          onLaunchComplete={() => setBusy(false)}
+          onSessionChange={handleSessionChange}
+          onLaunchComplete={handleLaunchComplete}
         />
       )}
     </div>

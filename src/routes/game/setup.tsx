@@ -16,11 +16,15 @@ import {
   useSubmitAction,
   useToggleUpvote,
   useGame,
+  queryKeys,
 } from '@/lib/api/hooks'
 import { api } from '@/lib/api'
+import { preserveDevSlotUrl } from '@/dev/slot'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function SetupPage() {
   const { gameId } = useParams({ from: '/game/$gameId' })
+  const qc = useQueryClient()
   const { data: game, refetch: refetchGame } = useGame(gameId)
   const { data: feed, isLoading } = useSetupFeed(gameId, game?.status === 'setup')
   const { data: progress } = useSetupProgress(gameId)
@@ -144,11 +148,18 @@ export function SetupPage() {
           busy={busy}
           onStartGame={() => {
             setBusy(true)
+            setError('')
             void (async () => {
               try {
-                await api.finalizeSetup(gameId)
+                try {
+                  await api.finalizeSetup(gameId)
+                } catch {
+                  // may already be finalized
+                }
                 await api.startGame(gameId)
                 await refetchGame()
+                await qc.invalidateQueries({ queryKey: queryKeys.players(gameId) })
+                window.location.assign(preserveDevSlotUrl(`/game/${gameId}/boards`))
               } catch (err) {
                 setError(err instanceof Error ? err.message : 'Start failed')
               } finally {

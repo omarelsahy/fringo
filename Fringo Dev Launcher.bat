@@ -59,7 +59,7 @@ if errorlevel 1 (
     echo [INFO] Starting local Supabase ^(first run can take a few minutes^)...
     call npm run supabase:start
     if errorlevel 1 (
-      echo [WARN] Could not start Supabase. Continue only if it is already running elsewhere.
+      echo [WARN] Could not start Supabase.
       echo.
     ) else (
       set "STARTED_SUPABASE=1"
@@ -67,26 +67,50 @@ if errorlevel 1 (
   )
 )
 
-netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "try { $r = Invoke-WebRequest -Uri 'http://127.0.0.1:54321/auth/v1/health' -UseBasicParsing -TimeoutSec 3; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 300) { exit 0 } else { exit 1 } } catch { exit 1 }"
 if errorlevel 1 (
-  echo [INFO] Starting Vite dev server...
+  echo.
+  echo [ERROR] Supabase is not reachable at http://127.0.0.1:54321
+  echo.
+  echo   1. Start Docker Desktop and wait until it is fully running
+  echo   2. In this folder, run: npm run supabase:start
+  echo   3. Run this launcher again
+  echo.
+  goto :fail
+)
+
+echo [OK] Supabase is running.
+call npx supabase migration up
+if errorlevel 1 (
+  echo [WARN] Could not apply pending migrations. Try: npm run supabase:reset
+  echo.
+)
+call node scripts/sync-env-from-supabase.mjs
+if errorlevel 1 goto :fail
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "try { Invoke-WebRequest -Uri 'http://localhost:5173/dev' -UseBasicParsing -TimeoutSec 3 | Out-Null; exit 0 } catch { exit 1 }"
+if errorlevel 1 (
+  echo [INFO] Starting Fringo game dev server on port 5173...
   start "Fringo Dev Server" /D "%~dp0" cmd /k npm run dev
   set "STARTED_VITE=1"
 
-  echo [INFO] Waiting for http://localhost:5173 ...
+  echo [INFO] Waiting for http://localhost:5173/dev ...
   powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$deadline=(Get-Date).AddSeconds(90); while((Get-Date) -lt $deadline){ try { Invoke-WebRequest -Uri 'http://localhost:5173/' -UseBasicParsing -TimeoutSec 2 | Out-Null; exit 0 } catch { Start-Sleep -Seconds 2 } }; exit 1"
+    "$deadline=(Get-Date).AddSeconds(90); while((Get-Date) -lt $deadline){ try { Invoke-WebRequest -Uri 'http://localhost:5173/dev' -UseBasicParsing -TimeoutSec 2 | Out-Null; exit 0 } catch { Start-Sleep -Seconds 2 } }; exit 1"
   if errorlevel 1 (
-    echo [ERROR] Dev server did not become ready. Check the "Fringo Dev Server" window.
+    echo [ERROR] Game dev server did not become ready. Check the "Fringo Dev Server" window.
     goto :fail
   )
-  echo [OK] Dev server is ready.
+  echo [OK] Game dev server is ready.
 ) else (
-  echo [OK] Dev server already running on port 5173.
+  echo [OK] Game dev server already running on port 5173.
 )
 
 echo.
-echo [INFO] Opening Electron dev launcher...
+echo [INFO] Opening Electron dev launcher ^(control panel on port 5174^)...
 echo        Close this window after the launcher exits.
 echo.
 
