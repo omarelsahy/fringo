@@ -38,14 +38,24 @@ const SAMPLE_ACTIONS = [
   'Dances like nobody is watching (everyone is)',
 ]
 
-export function createAdminClient(url: string, serviceRoleKey: string) {
-  const options: NonNullable<Parameters<typeof createClient>[2]> = {
-    auth: { persistSession: false, autoRefreshToken: false },
+export function createNodeSupabaseClient(
+  url: string,
+  key: string,
+  options: NonNullable<Parameters<typeof createClient>[2]> = {},
+) {
+  const clientOptions: NonNullable<Parameters<typeof createClient>[2]> = {
+    ...options,
   }
   if (typeof WebSocket === 'undefined') {
-    options.realtime = { transport: ws as unknown as typeof WebSocket }
+    clientOptions.realtime = { transport: ws as unknown as typeof WebSocket }
   }
-  return createClient(url, serviceRoleKey, options)
+  return createClient(url, key, clientOptions)
+}
+
+export function createAdminClient(url: string, serviceRoleKey: string) {
+  return createNodeSupabaseClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 
 export function routeForScenario(scenario: DevScenario): string {

@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { createClient } from '@supabase/supabase-js'
-import { applyScenario, createAdminClient } from '../src/dev/scenarios'
+import { applyScenario, createAdminClient, createNodeSupabaseClient } from '../src/dev/scenarios'
 
 function readEnv(name: string, fallback?: string): string {
   if (process.env[name]) return process.env[name]!
@@ -17,13 +16,13 @@ const anon = readEnv('VITE_SUPABASE_ANON_KEY')
 const service = readEnv('SUPABASE_SERVICE_ROLE_KEY')
 
 async function createPlayer() {
-  const client = createClient(url, anon, { auth: { persistSession: false } })
+  const client = createNodeSupabaseClient(url, anon, { auth: { persistSession: false } })
   const { error } = await client.auth.signInAnonymously()
   if (error) throw error
   return client
 }
 
-async function rpc(client: ReturnType<typeof createClient>, fn: string, args: Record<string, unknown>) {
+async function rpc(client: ReturnType<typeof createNodeSupabaseClient>, fn: string, args: Record<string, unknown>) {
   const { data, error } = await client.rpc(fn as never, args as never)
   if (error) throw error
   return data
