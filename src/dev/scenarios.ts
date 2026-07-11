@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import ws from 'ws'
 
 export type DevScenario = 'lobby' | 'setup' | 'setup-seeded' | 'active' | 'reveal'
 
@@ -38,9 +39,13 @@ const SAMPLE_ACTIONS = [
 ]
 
 export function createAdminClient(url: string, serviceRoleKey: string) {
-  return createClient(url, serviceRoleKey, {
+  const options: NonNullable<Parameters<typeof createClient>[2]> = {
     auth: { persistSession: false, autoRefreshToken: false },
-  })
+  }
+  if (typeof WebSocket === 'undefined') {
+    options.realtime = { transport: ws as unknown as typeof WebSocket }
+  }
+  return createClient(url, serviceRoleKey, options)
 }
 
 export function routeForScenario(scenario: DevScenario): string {
