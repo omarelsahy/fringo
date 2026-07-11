@@ -14,9 +14,11 @@ interface BingoGridProps {
   disabled?: boolean
   /** Board-level lock (e.g. target claimed) — grey overlay + lock icon */
   locked?: boolean
+  /** Display name of the player who claimed this target */
+  claimedBy?: string
 }
 
-export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked }: BingoGridProps) {
+export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked, claimedBy }: BingoGridProps) {
   const grid: (BoardSquareWithAction | null)[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => null),
   )
@@ -57,6 +59,9 @@ export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled, 
         >
           <Lock className="h-10 w-10 text-muted-foreground" strokeWidth={2} />
           <span className="text-sm font-medium text-muted-foreground">Target claimed</span>
+          {claimedBy && (
+            <span className="text-sm text-muted-foreground">Claimed by: {claimedBy}</span>
+          )}
         </div>
       )}
     </div>

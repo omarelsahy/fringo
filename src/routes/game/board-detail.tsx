@@ -11,6 +11,7 @@ import {
   useGameSettings,
   usePlayers,
   useReportGuess,
+  useTargetClaims,
 } from '@/lib/api/hooks'
 import { useBoardRealtime } from '@/lib/realtime'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,6 +22,7 @@ export function BoardDetailPage() {
   const { data: board, isLoading: boardLoading, error: boardError } = useBoard(boardId)
   const { data: settings, isLoading: settingsLoading, error: settingsError } = useGameSettings(gameId)
   const { data: players } = usePlayers(gameId)
+  const { data: claims } = useTargetClaims(gameId)
   const markSquare = useMarkSquare(gameId, boardId)
   const reportGuess = useReportGuess(gameId, boardId)
   const [bingoMessage, setBingoMessage] = useState('')
@@ -69,6 +71,9 @@ export function BoardDetailPage() {
   }
 
   const disabled = board.state !== 'active'
+  const playerMap = Object.fromEntries((players ?? []).map((p) => [p.id, p.display_name]))
+  const claim = claims?.find((c) => c.target_player_id === board.target_player_id)
+  const claimedBy = claim ? playerMap[claim.claimed_by_player_id] : undefined
 
   return (
     <>
@@ -95,6 +100,7 @@ export function BoardDetailPage() {
           onMark={handleMark}
           onLongPress={disabled ? undefined : setGuessSquare}
           locked={disabled}
+          claimedBy={claimedBy}
           disabled={disabled || markSquare.isPending}
         />
         <p className="text-center text-xs text-muted-foreground">
