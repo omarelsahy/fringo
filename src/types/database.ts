@@ -337,8 +337,8 @@ export type Database = {
           giveaway_penalty_points: number
           guesses_per_target: number
           has_free_space: boolean
-          multi_bingo_points: number
-          normal_bingo_points: number
+          multi_fringo_points: number
+          normal_fringo_points: number
           pre_action_guess_points: number
           reveal_marks_after_round: boolean
           updated_at: string
@@ -358,8 +358,8 @@ export type Database = {
           giveaway_penalty_points?: number
           guesses_per_target?: number
           has_free_space?: boolean
-          multi_bingo_points?: number
-          normal_bingo_points?: number
+          multi_fringo_points?: number
+          normal_fringo_points?: number
           pre_action_guess_points?: number
           reveal_marks_after_round?: boolean
           updated_at?: string
@@ -379,8 +379,8 @@ export type Database = {
           giveaway_penalty_points?: number
           guesses_per_target?: number
           has_free_space?: boolean
-          multi_bingo_points?: number
-          normal_bingo_points?: number
+          multi_fringo_points?: number
+          normal_fringo_points?: number
           pre_action_guess_points?: number
           reveal_marks_after_round?: boolean
           updated_at?: string
@@ -699,7 +699,7 @@ export type Database = {
       }
       target_claims: {
         Row: {
-          bingo_line_count: number
+          fringo_line_count: number
           board_id: string
           claimed_by_player_id: string
           created_at: string
@@ -709,7 +709,7 @@ export type Database = {
           target_player_id: string
         }
         Insert: {
-          bingo_line_count?: number
+          fringo_line_count?: number
           board_id: string
           claimed_by_player_id: string
           created_at?: string
@@ -719,7 +719,7 @@ export type Database = {
           target_player_id: string
         }
         Update: {
-          bingo_line_count?: number
+          fringo_line_count?: number
           board_id?: string
           claimed_by_player_id?: string
           created_at?: string
@@ -795,7 +795,7 @@ export type Database = {
         Args: { p_game_id: string; p_target_player_id: string }
         Returns: boolean
       }
-      claim_target_from_bingo: {
+      claim_target_from_fringo: {
         Args: { p_board_id: string; p_line_count: number }
         Returns: Json
       }
@@ -810,9 +810,9 @@ export type Database = {
           p_giveaway_penalty_points?: number
           p_guesses_per_target?: number
           p_has_free_space?: boolean
-          p_multi_bingo_points?: number
+          p_multi_fringo_points?: number
           p_name: string
-          p_normal_bingo_points?: number
+          p_normal_fringo_points?: number
           p_pre_action_guess_points?: number
         }
         Returns: string
@@ -830,7 +830,7 @@ export type Database = {
         Returns: undefined
       }
       end_game: { Args: { p_game_id: string }; Returns: undefined }
-      evaluate_bingo: {
+      evaluate_fringo: {
         Args: { p_board_id: string; p_new_square_id: string }
         Returns: number
       }

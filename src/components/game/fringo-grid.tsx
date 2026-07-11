@@ -5,7 +5,7 @@ import type { BoardSquareWithAction } from '@/types/app'
 
 const LONG_PRESS_MS = 500
 
-interface BingoGridProps {
+interface FringoGridProps {
   rows: number
   cols: number
   squares: BoardSquareWithAction[]
@@ -18,7 +18,7 @@ interface BingoGridProps {
   claimedBy?: string
 }
 
-export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked, claimedBy }: BingoGridProps) {
+export function FringoGrid({ rows, cols, squares, onMark, onLongPress, disabled, locked, claimedBy }: FringoGridProps) {
   const grid: (BoardSquareWithAction | null)[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => null),
   )
@@ -58,7 +58,7 @@ export function BingoGrid({ rows, cols, squares, onMark, onLongPress, disabled, 
           aria-hidden
         >
           <Lock className="h-10 w-10 text-muted-foreground" strokeWidth={2} />
-          <span className="text-sm font-medium text-muted-foreground">Target claimed</span>
+          <span className="text-sm font-medium text-muted-foreground">Fringo claimed</span>
           {claimedBy && (
             <span className="text-sm text-muted-foreground">Claimed by: {claimedBy}</span>
           )}

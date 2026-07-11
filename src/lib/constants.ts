@@ -71,7 +71,7 @@ export interface SetupFeedItem {
 
 export interface MarkSquareResult {
   marked: boolean
-  bingo: {
+  fringo: {
     claimed: boolean
     points?: number
     reason?: string

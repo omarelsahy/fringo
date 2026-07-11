@@ -12,7 +12,7 @@ export function HomePage() {
       <div className="py-8 text-center">
         <h1 className="text-4xl font-black tracking-tight text-primary">Fringo</h1>
         <p className="mt-2 text-muted-foreground">
-          Hidden-event social bingo for friends
+          Hidden-event social game for friends
         </p>
       </div>
 
@@ -37,8 +37,8 @@ export function HomePage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>1. Submit secret actions for other players and upvote the best ones.</p>
-          <p>2. Get private bingo boards with the same actions in different layouts.</p>
-          <p>3. Mark squares when you witness actions. First bingo claims the target!</p>
+          <p>2. Get private Fringo boards with the same actions in different layouts.</p>
+          <p>3. Mark squares when you witness actions. First Fringo claims the target!</p>
           <p>4. Report when targets guess your actions — hold a card on your board.</p>
         </CardContent>
       </Card>
