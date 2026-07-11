@@ -9,6 +9,7 @@ import {
   useBoard,
   useMarkSquare,
   useGameSettings,
+  useCurrentPlayer,
   usePlayers,
   useReportGuess,
   useTargetClaims,
@@ -22,6 +23,7 @@ export function BoardDetailPage() {
   const { data: board, isLoading: boardLoading, error: boardError } = useBoard(boardId)
   const { data: settings, isLoading: settingsLoading, error: settingsError } = useGameSettings(gameId)
   const { data: players } = usePlayers(gameId)
+  const { data: currentPlayer } = useCurrentPlayer(gameId)
   const { data: claims } = useTargetClaims(gameId)
   const markSquare = useMarkSquare(gameId, boardId)
   const reportGuess = useReportGuess(gameId, boardId)
@@ -29,7 +31,7 @@ export function BoardDetailPage() {
   const [error, setError] = useState('')
   const [guessSquare, setGuessSquare] = useState<BoardSquareWithAction | null>(null)
 
-  useBoardRealtime(boardId)
+  useBoardRealtime(boardId, gameId)
 
   const targetPlayer = players?.find((p) => p.id === board?.target_player_id)
   const guessesRemaining = targetPlayer?.guesses_remaining ?? 0
@@ -74,6 +76,7 @@ export function BoardDetailPage() {
   const playerMap = Object.fromEntries((players ?? []).map((p) => [p.id, p.display_name]))
   const claim = claims?.find((c) => c.target_player_id === board.target_player_id)
   const claimedBy = claim ? playerMap[claim.claimed_by_player_id] : undefined
+  const wonFringo = disabled && claim?.claimed_by_player_id === currentPlayer?.id
 
   return (
     <>
@@ -100,6 +103,7 @@ export function BoardDetailPage() {
           onMark={handleMark}
           onLongPress={disabled ? undefined : setGuessSquare}
           locked={disabled}
+          wonFringo={wonFringo}
           claimedBy={claimedBy}
           disabled={disabled || markSquare.isPending}
         />
