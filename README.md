@@ -1,6 +1,6 @@
 # Fringo
 
-Hidden-event social bingo for friends. PWA built with Vite + React + Supabase.
+Hidden-event social game for friends. PWA built with Vite + React + Supabase.
 
 ## Prerequisites
 

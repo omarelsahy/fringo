@@ -36,7 +36,7 @@ export function BoardsPage() {
                     {playerMap[board.target_player_id] ?? 'Player'}
                   </CardTitle>
                   {claimed ? (
-                    <Badge variant="success">Claimed</Badge>
+                    <Badge variant="success">Fringo claimed</Badge>
                   ) : board.state === 'active' ? (
                     <Badge variant="secondary">Active</Badge>
                   ) : (

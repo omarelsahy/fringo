@@ -11,8 +11,8 @@ interface ScoreboardProps {
 }
 
 const reasonLabels: Record<string, string> = {
-  bingo: 'Bingo',
-  multi_bingo: 'Double Bingo',
+  fringo: 'Fringo',
+  multi_fringo: 'Double Fringo',
   pre_action_guess: 'Pre-action Guess',
   giveaway_penalty: 'Giveaway Penalty',
   admin_adjustment: 'Admin Adjustment',

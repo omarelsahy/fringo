@@ -51,7 +51,7 @@ export function LobbyPage() {
     <>
       <PageHeader
         title={game.name}
-        subtitle={game.category ?? 'Social bingo'}
+        subtitle={game.category ?? 'Social Fringo'}
         action={<Badge>{statusLabels[game.status] ?? game.status}</Badge>}
       />
       <div className="flex flex-1 flex-col gap-4 p-4">

@@ -36,14 +36,14 @@ For N active players:
 - [ ] Different square layouts per observer
 - [ ] Free space at center when enabled
 
-## Marking & Bingo (17.4–17.5)
+## Marking & Fringo (17.4–17.5)
 
 - [ ] Owner can mark unmarked square
 - [ ] Locked/claimed squares cannot be marked
-- [ ] Row bingo claims target (+1)
-- [ ] Column bingo claims target
-- [ ] Diagonal bingo when enabled
-- [ ] Single mark completing 2 lines = +3 (multi_bingo)
+- [ ] Row Fringo claims target (+1)
+- [ ] Column Fringo claims target
+- [ ] Diagonal Fringo when enabled
+- [ ] Single mark completing 2 lines = +3 (multi_fringo)
 - [ ] Second claim on same target fails
 
 ## Guesses (17.6)

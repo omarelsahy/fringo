@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: 'Fringo',
         short_name: 'Fringo',
-        description: 'Hidden-event social bingo for friends',
+        description: 'Hidden-event social game for friends',
         theme_color: '#6366f1',
         background_color: '#0f172a',
         display: 'standalone',
