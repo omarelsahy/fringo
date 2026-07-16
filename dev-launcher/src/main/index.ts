@@ -77,7 +77,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('apply-scenario', async (_event, payload: { gameId: string; scenario: DevScenario }) => {
     const supabaseUrl = readEnvVar('VITE_SUPABASE_URL') ?? 'http://127.0.0.1:54321'
-    const admin = createAdminClient(supabaseUrl, loadServiceRoleKey())
+    const admin = await createAdminClient(supabaseUrl, loadServiceRoleKey())
     try {
       await applyScenario(admin, payload.gameId, payload.scenario)
     } catch (e) {

@@ -150,7 +150,7 @@ async function handleScenario(req: IncomingMessage, res: ServerResponse, server:
       res.end('Missing SUPABASE_SERVICE_ROLE_KEY in .env (from `npx supabase status -o env`)')
       return
     }
-    const admin = createAdminClient(url, key)
+    const admin = await createAdminClient(url, key)
     await applyScenario(admin, body.gameId, body.scenario)
 
     res.statusCode = 200

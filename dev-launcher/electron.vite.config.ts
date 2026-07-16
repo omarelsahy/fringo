@@ -7,6 +7,8 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin({ exclude: ['@supabase/supabase-js'] })],
     build: {
       rollupOptions: {
+        // Keep ws and its optional natives out of the bundle (Vite stubs throw at import).
+        external: ['ws', 'bufferutil', 'utf-8-validate'],
         input: {
           index: path.resolve(__dirname, 'src/main/index.ts'),
         },
