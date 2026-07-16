@@ -30,6 +30,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
   action: 'create' | 'join'
   name: string
   code?: string
+  preset?: string
 }) {
   const params = new URLSearchParams({
     fresh: '1',
@@ -37,7 +38,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
     launchId,
     action: opts.action,
     name: opts.name,
-    preset: 'game_night',
+    preset: opts.preset ?? 'game_night',
     gameName: 'Dev Launcher Game',
   })
   if (opts.code) params.set('code', opts.code)

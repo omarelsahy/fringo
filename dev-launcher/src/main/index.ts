@@ -49,7 +49,7 @@ function resolvePreload(name: string) {
 
 let mainWindow: BrowserWindow | null = null
 
-function createMainWindow() {
+async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1500,
     height: 960,
@@ -63,7 +63,14 @@ function createMainWindow() {
     },
   })
 
-  if (process.env.ELECTRON_RENDERER_URL) {
+  // Prefer the game server's same-origin Dev Grid (:5173/dev). Embedding
+  // :5173 iframes inside the :5174 Electron UI caused blank panels / stuck
+  // joins in VMs (cross-origin ready signaling + GPU compositing).
+  const gameDev = (readEnvVar('VITE_DEV_SERVER_URL') ?? 'http://localhost:5173').replace(/\/$/, '')
+  const gameDevOk = await waitForDevServer(`${gameDev}/dev`, 8000)
+  if (gameDevOk) {
+    void mainWindow.loadURL(`${gameDev}/dev`)
+  } else if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
     void mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
@@ -75,7 +82,7 @@ function createMainWindow() {
 }
 
 app.whenReady().then(() => {
-  createMainWindow()
+  void createMainWindow()
 
   ipcMain.handle('check-dev-server', async (_event, url: string) => waitForDevServer(url, 5000))
   ipcMain.handle('check-supabase', async () => checkSupabaseHealth())
@@ -101,7 +108,7 @@ app.whenReady().then(() => {
   })
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
+    if (BrowserWindow.getAllWindows().length === 0) void createMainWindow()
   })
 })
 

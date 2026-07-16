@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { routeForScenario, type DevScenario } from '@/dev/scenarios'
 import type { DevPlayerReadyPayload } from '@/dev/session-bus'
+import { GAME_PRESETS, type PresetKey } from '@/lib/constants'
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 
@@ -20,6 +21,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
   action: 'create' | 'join'
   name: string
   code?: string
+  preset: PresetKey
 }) {
   const params = new URLSearchParams({
     fresh: '1',
@@ -27,7 +29,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
     launchId,
     action: opts.action,
     name: opts.name,
-    preset: 'game_night',
+    preset: opts.preset,
     gameName: 'Dev Grid Game',
   })
   if (opts.code) params.set('code', opts.code)
@@ -38,6 +40,7 @@ export function DevGridPage() {
   const [playerCount, setPlayerCount] = useState(4)
   const [names, setNames] = useState(DEFAULT_NAMES)
   const [scenario, setScenario] = useState<DevScenario>('setup-seeded')
+  const [preset, setPreset] = useState<PresetKey>('game_night')
   const [gameId, setGameId] = useState<string | null>(null)
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [frameUrls, setFrameUrls] = useState<(string | null)[]>(Array(6).fill(null))
@@ -133,8 +136,13 @@ export function DevGridPage() {
     appendLog('Launching host...')
 
     const urls: (string | null)[] = Array(6).fill(null)
-    urls[0] = buildPlayerUrl(baseUrl, 0, launchIdRef.current, { action: 'create', name: names[0] ?? 'Alice' })
+    urls[0] = buildPlayerUrl(baseUrl, 0, launchIdRef.current, {
+      action: 'create',
+      name: names[0] ?? 'Alice',
+      preset,
+    })
     setFrameUrls(urls)
+    appendLog(`Preset: ${preset} (${GAME_PRESETS[preset].board_rows}×${GAME_PRESETS[preset].board_cols})`)
 
     try {
       await waitFor(() => sessionRef.current.inviteCode !== null, 45000, pollPlayerReady)
@@ -149,6 +157,7 @@ export function DevGridPage() {
             action: 'join',
             name: names[slot] ?? `Player ${slot + 1}`,
             code,
+            preset,
           })
           return next
         })
@@ -231,6 +240,23 @@ export function DevGridPage() {
                 {(Object.keys(SCENARIO_LABELS) as DevScenario[]).map((key) => (
                   <option key={key} value={key}>
                     {SCENARIO_LABELS[key]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="preset">Game preset</Label>
+              <select
+                id="preset"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                value={preset}
+                onChange={(e) => setPreset(e.target.value as PresetKey)}
+              >
+                {(Object.keys(GAME_PRESETS) as PresetKey[]).map((key) => (
+                  <option key={key} value={key}>
+                    {GAME_PRESETS[key].label} — {GAME_PRESETS[key].board_rows}×{GAME_PRESETS[key].board_cols},{' '}
+                    {GAME_PRESETS[key].actions_per_target} actions
                   </option>
                 ))}
               </select>
