@@ -15,14 +15,16 @@ const url = readEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:54321')
 const anon = readEnv('VITE_SUPABASE_ANON_KEY')
 const service = readEnv('SUPABASE_SERVICE_ROLE_KEY')
 
+type PlayerClient = Awaited<ReturnType<typeof createNodeSupabaseClient>>
+
 async function createPlayer() {
-  const client = createNodeSupabaseClient(url, anon, { auth: { persistSession: false } })
+  const client = await createNodeSupabaseClient(url, anon, { auth: { persistSession: false } })
   const { error } = await client.auth.signInAnonymously()
   if (error) throw error
   return client
 }
 
-async function rpc(client: ReturnType<typeof createNodeSupabaseClient>, fn: string, args: Record<string, unknown>) {
+async function rpc(client: PlayerClient, fn: string, args: Record<string, unknown>) {
   const { data, error } = await client.rpc(fn as never, args as never)
   if (error) throw error
   return data
@@ -51,7 +53,7 @@ async function createLobbyGame() {
   return gameId
 }
 
-const admin = createAdminClient(url, service)
+const admin = await createAdminClient(url, service)
 
 for (const scenario of ['setup-seeded', 'active', 'reveal'] as const) {
   const gameId = await createLobbyGame()

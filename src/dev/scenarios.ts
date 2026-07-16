@@ -1,5 +1,4 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import ws from 'ws'
 
 export type DevScenario = 'lobby' | 'setup' | 'setup-seeded' | 'active' | 'reveal'
 
@@ -38,7 +37,7 @@ const SAMPLE_ACTIONS = [
   'Dances like nobody is watching (everyone is)',
 ]
 
-export function createNodeSupabaseClient(
+export async function createNodeSupabaseClient(
   url: string,
   key: string,
   options: NonNullable<Parameters<typeof createClient>[2]> = {},
@@ -46,13 +45,16 @@ export function createNodeSupabaseClient(
   const clientOptions: NonNullable<Parameters<typeof createClient>[2]> = {
     ...options,
   }
+  // Prefer the runtime global WebSocket (browser / modern Electron / Node 22+).
+  // Only pull in `ws` when no global exists (avoids bundling optional native deps).
   if (typeof WebSocket === 'undefined') {
+    const { default: ws } = await import('ws')
     clientOptions.realtime = { transport: ws as unknown as typeof WebSocket }
   }
   return createClient(url, key, clientOptions)
 }
 
-export function createAdminClient(url: string, serviceRoleKey: string) {
+export async function createAdminClient(url: string, serviceRoleKey: string) {
   return createNodeSupabaseClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })

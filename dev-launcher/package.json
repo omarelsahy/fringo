@@ -17,10 +17,14 @@
   "devDependencies": {
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
     "electron": "^35.7.5",
     "electron-vite": "^3.1.0",
     "typescript": "~5.8.3",
-    "vite": "^6.3.5",
-    "@vitejs/plugin-react": "^4.4.1"
+    "vite": "^6.3.5"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.1.0",
+    "utf-8-validate": "^6.0.6"
   }
 }

@@ -48,6 +48,8 @@ export type GameStatus = 'lobby' | 'setup' | 'active' | 'ended' | 'revealed' | '
 export interface CreateGameInput {
   name: string
   category?: string
+  /** Host display name shown in lobby / boards */
+  displayName?: string
   board_rows: number
   board_cols: number
   has_free_space: boolean

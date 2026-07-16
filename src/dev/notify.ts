@@ -15,16 +15,35 @@ declare global {
 }
 
 export function notifyPlayerReady(payload: DevPlayerReadyPayload, launchId?: string) {
+  const message = { type: 'fringo-dev-player-ready', ...payload }
   window.fringoDev?.playerReady(payload)
-  window.parent.postMessage({ type: 'fringo-dev-player-ready', ...payload }, '*')
+  // Broadcast to parent and top — Electron BrowserWindow + iframe nesting
+  // can make `parent` alone unreliable.
+  try {
+    window.parent?.postMessage(message, '*')
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (window.top && window.top !== window.parent) {
+      window.top.postMessage(message, '*')
+    }
+  } catch {
+    /* ignore */
+  }
 
   if (launchId) {
-    void fetch(`${window.location.origin}/dev/api/player-ready`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ launchId, ...payload }),
-    }).catch(() => {
-      // postMessage remains the primary path for same-origin parents
-    })
+    const post = () =>
+      fetch(`${window.location.origin}/dev/api/player-ready`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ launchId, ...payload }),
+      })
+
+    void post()
+      .catch(() => post())
+      .catch(() => {
+        // postMessage remains a fallback path for same-origin parents
+      })
   }
 }

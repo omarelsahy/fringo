@@ -30,6 +30,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
   action: 'create' | 'join'
   name: string
   code?: string
+  preset?: string
 }) {
   const params = new URLSearchParams({
     fresh: '1',
@@ -37,7 +38,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
     launchId,
     action: opts.action,
     name: opts.name,
-    preset: 'game_night',
+    preset: opts.preset ?? 'game_night',
     gameName: 'Dev Launcher Game',
   })
   if (opts.code) params.set('code', opts.code)
@@ -47,7 +48,8 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
 function buildGameUrl(baseUrl: string, gameId: string, route: string, slot: number) {
   const base = baseUrl.replace(/\/$/, '')
   const pathPart = route === 'lobby' ? `/game/${gameId}` : `/game/${gameId}/${route}`
-  return `${base}${pathPart}?slot=${slot}`
+  // Cache-bust so Navigate All remounts iframes that drifted via in-frame links
+  return `${base}${pathPart}?slot=${slot}&t=${Date.now()}`
 }
 
 export type PlayerGridHandle = {
@@ -159,9 +161,21 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
   )
 
   const reloadAll = useCallback(() => {
+    const gid = sessionRef.current.gameId
+    // Prefer reloading settled game routes — remounting /dev/player?fresh=1
+    // re-creates auth (and a new host game) and blanks the session.
+    if (gid) {
+      setFrameUrls((prev) => {
+        const next = [...prev]
+        for (let slot = 0; slot < playerCountRef.current; slot += 1) {
+          if (next[slot]) next[slot] = buildGameUrl(baseUrl, gid, 'lobby', slot)
+        }
+        return next
+      })
+    }
     setReloadKey((k) => k + 1)
     onStatusRef.current('Reloaded all player views', sessionRef.current)
-  }, [])
+  }, [baseUrl])
 
   const reset = useCallback(() => {
     const previousLaunchId = launchIdRef.current
@@ -212,8 +226,8 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
     const code = sessionRef.current.inviteCode!
     for (let slot = 1; slot < playerCountRef.current; slot += 1) {
       loadJoinSlot(slot, code)
-      await waitFor(() => readySlots.current.has(slot), 45000)
-      await delay(500)
+      await waitFor(() => readySlots.current.has(slot), 60000)
+      await delay(1200)
     }
 
     await waitFor(() => readySlots.current.size >= playerCountRef.current, 10000)
@@ -281,7 +295,7 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
               title={`Player ${slot}`}
               src={frameUrls[slot]!}
               className="player-frame"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              allow="clipboard-read; clipboard-write"
             />
           ) : (
             <div className="player-placeholder">Waiting to launch...</div>

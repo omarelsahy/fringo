@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { routeForScenario, type DevScenario } from '@/dev/scenarios'
 import type { DevPlayerReadyPayload } from '@/dev/session-bus'
+import { GAME_PRESETS, type PresetKey } from '@/lib/constants'
 
 const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank']
 
@@ -20,6 +21,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
   action: 'create' | 'join'
   name: string
   code?: string
+  preset: PresetKey
 }) {
   const params = new URLSearchParams({
     fresh: '1',
@@ -27,7 +29,7 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
     launchId,
     action: opts.action,
     name: opts.name,
-    preset: 'game_night',
+    preset: opts.preset,
     gameName: 'Dev Grid Game',
   })
   if (opts.code) params.set('code', opts.code)
@@ -38,6 +40,7 @@ export function DevGridPage() {
   const [playerCount, setPlayerCount] = useState(4)
   const [names, setNames] = useState(DEFAULT_NAMES)
   const [scenario, setScenario] = useState<DevScenario>('setup-seeded')
+  const [preset, setPreset] = useState<PresetKey>('game_night')
   const [gameId, setGameId] = useState<string | null>(null)
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [frameUrls, setFrameUrls] = useState<(string | null)[]>(Array(6).fill(null))
@@ -107,11 +110,14 @@ export function DevGridPage() {
   function navigateAll(route: string, gid: string) {
     const path =
       route === 'lobby' ? `/game/${gid}` : `/game/${gid}/${route}`
+    // Bust the URL so React remounts iframes even when they navigated
+    // internally away from the last parent-assigned src (same path).
+    const bust = `t=${Date.now()}`
 
     setFrameUrls((prev) => {
       const next = [...prev]
       for (let slot = 0; slot < playerCount; slot += 1) {
-        if (next[slot]) next[slot] = `${baseUrl}${path}?slot=${slot}`
+        if (next[slot]) next[slot] = `${baseUrl}${path}?slot=${slot}&${bust}`
       }
       return next
     })
@@ -133,8 +139,13 @@ export function DevGridPage() {
     appendLog('Launching host...')
 
     const urls: (string | null)[] = Array(6).fill(null)
-    urls[0] = buildPlayerUrl(baseUrl, 0, launchIdRef.current, { action: 'create', name: names[0] ?? 'Alice' })
+    urls[0] = buildPlayerUrl(baseUrl, 0, launchIdRef.current, {
+      action: 'create',
+      name: names[0] ?? 'Alice',
+      preset,
+    })
     setFrameUrls(urls)
+    appendLog(`Preset: ${preset} (${GAME_PRESETS[preset].board_rows}×${GAME_PRESETS[preset].board_cols})`)
 
     try {
       await waitFor(() => sessionRef.current.inviteCode !== null, 45000, pollPlayerReady)
@@ -149,11 +160,14 @@ export function DevGridPage() {
             action: 'join',
             name: names[slot] ?? `Player ${slot + 1}`,
             code,
+            preset,
           })
           return next
         })
-        await waitFor(() => readySlots.current.has(slot), 45000, pollPlayerReady)
-        await new Promise((r) => setTimeout(r, 1500))
+        await waitFor(() => readySlots.current.has(slot), 60000, pollPlayerReady)
+        // Pace anonymous sign-ups — local GoTrue can flake when 5 iframes
+        // authenticate back-to-back under Electron load.
+        await new Promise((r) => setTimeout(r, 1200))
       }
 
       appendLog('All players joined')
@@ -236,6 +250,23 @@ export function DevGridPage() {
               </select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="preset">Game preset</Label>
+              <select
+                id="preset"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                value={preset}
+                onChange={(e) => setPreset(e.target.value as PresetKey)}
+              >
+                {(Object.keys(GAME_PRESETS) as PresetKey[]).map((key) => (
+                  <option key={key} value={key}>
+                    {GAME_PRESETS[key].label} — {GAME_PRESETS[key].board_rows}×{GAME_PRESETS[key].board_cols},{' '}
+                    {GAME_PRESETS[key].actions_per_target} actions
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <Button className="w-full" onClick={() => void handleLaunch()} disabled={launching}>
               {launching ? 'Launching...' : 'Launch Session'}
             </Button>
@@ -282,7 +313,9 @@ export function DevGridPage() {
                   title={`Player ${slot}`}
                   src={frameUrls[slot]!}
                   className="min-h-0 flex-1 bg-background"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  // No sandbox: Electron + multi-iframe auth/sessionStorage is
+                  // unreliable under sandbox even with allow-same-origin.
+                  allow="clipboard-read; clipboard-write"
                 />
               ) : (
                 <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
@@ -309,7 +342,7 @@ function waitFor(predicate: () => boolean, timeoutMs: number, poll?: () => Promi
         reject(new Error('Timed out waiting for players'))
         return
       }
-      void (poll?.() ?? Promise.resolve()).finally(() => setTimeout(tick, 250))
+      void (poll?.() ?? Promise.resolve()).finally(() => setTimeout(tick, 150))
     }
     tick()
   })

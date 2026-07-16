@@ -17,9 +17,11 @@ export function CreateGamePage() {
   const setLastGameId = useSessionStore((s) => s.setLastGameId)
   const [preset, setPreset] = useState<PresetKey>('night_out')
   const [name, setName] = useState('')
+  const [hostName, setHostName] = useState(() => useSessionStore.getState().displayName || '')
   const [category, setCategory] = useState('')
   const [error, setError] = useState('')
   const createGame = useCreateGame()
+  const setDisplayName = useSessionStore((s) => s.setDisplayName)
 
   const settings = GAME_PRESETS[preset]
 
@@ -27,9 +29,12 @@ export function CreateGamePage() {
     setError('')
     try {
       await ensureAnonymousAuth()
+      const displayName = hostName.trim() || 'Host'
+      setDisplayName(displayName)
       const gameId = await createGame.mutateAsync({
         name: name.trim() || 'Fringo Game',
         category: category.trim() || undefined,
+        displayName,
         ...settings,
       })
       setLastGameId(gameId)
@@ -67,6 +72,15 @@ export function CreateGamePage() {
             <CardTitle className="text-base">Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="hostName">Your display name</Label>
+              <Input
+                id="hostName"
+                value={hostName}
+                onChange={(e) => setHostName(e.target.value)}
+                placeholder="Alice"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Game name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Friday Bar Night" />

@@ -40,7 +40,10 @@ export function LoadingScreen({ message = 'Loading...' }: { message?: string }) 
 
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="mx-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-red-200">
+    <div
+      role="alert"
+      className="mx-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-red-200"
+    >
       {message}
     </div>
   )
