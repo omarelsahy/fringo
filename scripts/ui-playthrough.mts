@@ -210,7 +210,12 @@ async function main() {
     executablePath: CHROME,
     headless: false,
     defaultViewport: { width: 1600, height: 1000 },
-    args: ['--no-sandbox', '--disable-gpu', '--window-size=1600,1000'],
+    args: [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--window-size=1600,1000',
+      `--user-data-dir=/tmp/fringo-playthrough-chrome`,
+    ],
   })
 
   const page = await browser.newPage()
@@ -242,10 +247,27 @@ async function main() {
       const btn = [...document.querySelectorAll('button')].find((b) =>
         (b.textContent ?? '').includes('Launch Session'),
       )
-      ;(btn as HTMLButtonElement)?.click()
+      if (!btn) throw new Error('Launch Session button missing')
+      ;(btn as HTMLButtonElement).click()
     })
 
-    await waitForText(page, 'Session ready', 120000)
+    try {
+      await page.waitForFunction(
+        () => {
+          const t = document.body?.innerText ?? ''
+          return t.includes('Session ready') || t.includes('Timed out waiting for players')
+        },
+        { timeout: 180000 },
+      )
+    } catch (e) {
+      await page.screenshot({ path: `${ARTIFACTS}/00-launch-timeout.png`, fullPage: true })
+      throw e
+    }
+    const launchLog = await page.evaluate(() => document.body.innerText)
+    if (launchLog.includes('Timed out waiting for players')) {
+      await page.screenshot({ path: `${ARTIFACTS}/00-launch-failed.png`, fullPage: true })
+      throw new Error('Launcher timed out waiting for players')
+    }
     await page.waitForSelector('iframe[title="Player 4"]', { timeout: 30000 })
     const invite = await page.evaluate(() => {
       const text = document.body.innerText

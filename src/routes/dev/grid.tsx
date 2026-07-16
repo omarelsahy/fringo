@@ -165,7 +165,9 @@ export function DevGridPage() {
           return next
         })
         await waitFor(() => readySlots.current.has(slot), 60000, pollPlayerReady)
-        await new Promise((r) => setTimeout(r, 800))
+        // Pace anonymous sign-ups — local GoTrue can flake when 5 iframes
+        // authenticate back-to-back under Electron load.
+        await new Promise((r) => setTimeout(r, 1200))
       }
 
       appendLog('All players joined')

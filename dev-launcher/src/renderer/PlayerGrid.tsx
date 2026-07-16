@@ -226,8 +226,8 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
     const code = sessionRef.current.inviteCode!
     for (let slot = 1; slot < playerCountRef.current; slot += 1) {
       loadJoinSlot(slot, code)
-      await waitFor(() => readySlots.current.has(slot), 45000)
-      await delay(500)
+      await waitFor(() => readySlots.current.has(slot), 60000)
+      await delay(1200)
     }
 
     await waitFor(() => readySlots.current.size >= playerCountRef.current, 10000)
