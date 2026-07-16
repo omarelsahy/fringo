@@ -93,13 +93,22 @@ export function DevPlayerPage() {
         setDisplayName(search.name)
         setLastGameId(gameId)
 
-        notifyPlayerReady({
+        const readyPayload = {
           slot: search.slot,
           gameId,
           inviteCode,
           displayName: search.name,
           role,
-        }, search.launchId)
+        }
+        notifyPlayerReady(readyPayload, search.launchId)
+        // Re-notify while waiting — Electron/iframe parents sometimes miss the
+        // first postMessage/fetch during sequential multi-player launch.
+        if (!search.navigate && search.launchId) {
+          const interval = window.setInterval(() => {
+            notifyPlayerReady(readyPayload, search.launchId)
+          }, 1000)
+          window.setTimeout(() => clearInterval(interval), 60000)
+        }
 
         if (search.navigate) {
           const route = search.navigate as DevNavigate

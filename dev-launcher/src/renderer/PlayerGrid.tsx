@@ -295,7 +295,7 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
               title={`Player ${slot}`}
               src={frameUrls[slot]!}
               className="player-frame"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              allow="clipboard-read; clipboard-write"
             />
           ) : (
             <div className="player-placeholder">Waiting to launch...</div>

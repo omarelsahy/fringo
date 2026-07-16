@@ -164,8 +164,8 @@ export function DevGridPage() {
           })
           return next
         })
-        await waitFor(() => readySlots.current.has(slot), 45000, pollPlayerReady)
-        await new Promise((r) => setTimeout(r, 1500))
+        await waitFor(() => readySlots.current.has(slot), 60000, pollPlayerReady)
+        await new Promise((r) => setTimeout(r, 800))
       }
 
       appendLog('All players joined')
@@ -311,7 +311,9 @@ export function DevGridPage() {
                   title={`Player ${slot}`}
                   src={frameUrls[slot]!}
                   className="min-h-0 flex-1 bg-background"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  // No sandbox: Electron + multi-iframe auth/sessionStorage is
+                  // unreliable under sandbox even with allow-same-origin.
+                  allow="clipboard-read; clipboard-write"
                 />
               ) : (
                 <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
@@ -338,7 +340,7 @@ function waitFor(predicate: () => boolean, timeoutMs: number, poll?: () => Promi
         reject(new Error('Timed out waiting for players'))
         return
       }
-      void (poll?.() ?? Promise.resolve()).finally(() => setTimeout(tick, 250))
+      void (poll?.() ?? Promise.resolve()).finally(() => setTimeout(tick, 150))
     }
     tick()
   })
