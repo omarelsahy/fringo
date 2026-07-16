@@ -210,10 +210,13 @@ async function main() {
     executablePath: CHROME,
     headless: false,
     defaultViewport: { width: 1600, height: 1000 },
+    ignoreDefaultArgs: ['--enable-automation'],
     args: [
       '--no-sandbox',
       '--disable-gpu',
       '--window-size=1600,1000',
+      '--disable-infobars',
+      '--disable-blink-features=AutomationControlled',
       `--user-data-dir=/tmp/fringo-playthrough-chrome`,
     ],
   })
@@ -506,6 +509,8 @@ async function main() {
       notes.push('Reveal page loaded')
     }
 
+    // Hold on reveal for demos / screen recordings
+    await sleep(5000)
     log('Playthrough finished')
   } finally {
     const summary = { bugs, notes, at: new Date().toISOString() }
