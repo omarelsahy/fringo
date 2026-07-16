@@ -15,7 +15,7 @@ import type {
 async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   await ensureAnonymousAuth()
   const { data, error } = await supabase.rpc(fn as never, args as never)
-  if (error) throw error
+  if (error) throw new Error(error.message || `RPC ${fn} failed`)
   return data as T
 }
 
@@ -24,6 +24,7 @@ export const api = {
     return rpc<string>('create_game', {
       p_name: input.name,
       p_category: input.category ?? null,
+      p_display_name: input.displayName?.trim() || null,
       p_board_rows: input.board_rows,
       p_board_cols: input.board_cols,
       p_has_free_space: input.has_free_space,

@@ -806,6 +806,7 @@ export type Database = {
           p_board_cols?: number
           p_board_rows?: number
           p_category?: string
+          p_display_name?: string
           p_end_condition?: string
           p_giveaway_penalty_points?: number
           p_guesses_per_target?: number

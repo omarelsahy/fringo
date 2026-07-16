@@ -43,6 +43,7 @@ export function DevPlayerPage() {
           gameId = await api.createGame({
             name: search.gameName ?? 'Dev Test Game',
             category: 'Dev launcher',
+            displayName: search.name,
             ...preset,
           })
 

@@ -159,9 +159,21 @@ export const PlayerGrid = forwardRef<PlayerGridHandle, Props>(function PlayerGri
   )
 
   const reloadAll = useCallback(() => {
+    const gid = sessionRef.current.gameId
+    // Prefer reloading settled game routes — remounting /dev/player?fresh=1
+    // re-creates auth (and a new host game) and blanks the session.
+    if (gid) {
+      setFrameUrls((prev) => {
+        const next = [...prev]
+        for (let slot = 0; slot < playerCountRef.current; slot += 1) {
+          if (next[slot]) next[slot] = buildGameUrl(baseUrl, gid, 'lobby', slot)
+        }
+        return next
+      })
+    }
     setReloadKey((k) => k + 1)
     onStatusRef.current('Reloaded all player views', sessionRef.current)
-  }, [])
+  }, [baseUrl])
 
   const reset = useCallback(() => {
     const previousLaunchId = launchIdRef.current

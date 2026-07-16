@@ -7,6 +7,11 @@ import type { DevScenario } from '../../../src/dev/scenarios'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// Headless / VM displays often fail to composite iframe contents with GPU on.
+app.disableHardwareAcceleration()
+app.commandLine.appendSwitch('disable-gpu')
+app.commandLine.appendSwitch('disable-software-rasterizer')
+
 const envPath = path.resolve(__dirname, '../../../.env')
 
 function readEnvVar(name: string): string | null {
