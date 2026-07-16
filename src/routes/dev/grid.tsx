@@ -110,11 +110,14 @@ export function DevGridPage() {
   function navigateAll(route: string, gid: string) {
     const path =
       route === 'lobby' ? `/game/${gid}` : `/game/${gid}/${route}`
+    // Bust the URL so React remounts iframes even when they navigated
+    // internally away from the last parent-assigned src (same path).
+    const bust = `t=${Date.now()}`
 
     setFrameUrls((prev) => {
       const next = [...prev]
       for (let slot = 0; slot < playerCount; slot += 1) {
-        if (next[slot]) next[slot] = `${baseUrl}${path}?slot=${slot}`
+        if (next[slot]) next[slot] = `${baseUrl}${path}?slot=${slot}&${bust}`
       }
       return next
     })

@@ -48,7 +48,8 @@ function buildPlayerUrl(baseUrl: string, slot: number, launchId: string, opts: {
 function buildGameUrl(baseUrl: string, gameId: string, route: string, slot: number) {
   const base = baseUrl.replace(/\/$/, '')
   const pathPart = route === 'lobby' ? `/game/${gameId}` : `/game/${gameId}/${route}`
-  return `${base}${pathPart}?slot=${slot}`
+  // Cache-bust so Navigate All remounts iframes that drifted via in-frame links
+  return `${base}${pathPart}?slot=${slot}&t=${Date.now()}`
 }
 
 export type PlayerGridHandle = {
